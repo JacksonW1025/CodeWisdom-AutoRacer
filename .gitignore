@@ -1,0 +1,33 @@
+# Reference code (do not commit)
+reference/
+
+# Agent files
+AGENT.md
+CLAUDE.md
+AGENTLOG.md
+PROMPT.md
+
+# ROS2 build artifacts
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

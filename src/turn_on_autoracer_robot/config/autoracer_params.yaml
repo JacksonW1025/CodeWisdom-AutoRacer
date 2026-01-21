@@ -1,0 +1,24 @@
+# AutoRacer robot parameters
+# Reference: wheeltec_ros2/src/turn_on_wheeltec_robot/launch/base_serial.launch.py
+
+autoracer_robot:
+  ros__parameters:
+    # Serial communication settings
+    usart_port_name: "/dev/ttyACM0"  # TODO: Update to actual device
+    serial_baud_rate: 115200
+
+    # Frame IDs
+    robot_frame_id: "base_footprint"
+    odom_frame_id: "odom"
+    gyro_frame_id: "gyro_link"
+
+    # Odometry calibration (scale factors)
+    odom_x_scale: 1.0
+    odom_y_scale: 1.0
+    odom_z_scale_positive: 1.0
+    odom_z_scale_negative: 1.0
+
+    # TODO: Add Ackermann-specific parameters
+    # wheelbase: 0.0         # Distance between front and rear axles (m)
+    # max_steering_angle: 0.0 # Maximum steering angle (rad)
+    # wheel_radius: 0.0      # Wheel radius (m)
