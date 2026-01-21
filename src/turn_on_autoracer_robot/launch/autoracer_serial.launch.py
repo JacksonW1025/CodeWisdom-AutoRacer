@@ -1,7 +1,7 @@
 """
-Launch file for AutoRacer robot bringup.
+Launch file for AutoRacer serial communication node only.
 
-This launch file starts the main chassis control node.
+This launch file starts only the serial driver node without TF transforms or other components.
 Reference: wheeltec_ros2/src/turn_on_wheeltec_robot/launch/turn_on_wheeltec_robot.launch.py
 """
 
@@ -14,11 +14,14 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
+    # Get package share directory
+    pkg_share = get_package_share_directory('turn_on_autoracer_robot')
+
     # Declare launch arguments
     usart_port_arg = DeclareLaunchArgument(
         'usart_port_name',
         default_value='/dev/ttyACM0',
-        description='Serial port for STM32/C63A communication'
+        description='Serial port for STM32 communication'
     )
 
     baud_rate_arg = DeclareLaunchArgument(
@@ -39,8 +42,14 @@ def generate_launch_description():
         description='Odometry frame ID'
     )
 
-    # Main robot node
-    autoracer_robot_node = Node(
+    gyro_frame_arg = DeclareLaunchArgument(
+        'gyro_frame_id',
+        default_value='gyro_link',
+        description='Gyroscope frame ID'
+    )
+
+    # Serial communication node
+    autoracer_robot = Node(
         package='turn_on_autoracer_robot',
         executable='autoracer_robot',
         name='autoracer_robot',
@@ -50,23 +59,8 @@ def generate_launch_description():
             'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
             'robot_frame_id': LaunchConfiguration('robot_frame_id'),
             'odom_frame_id': LaunchConfiguration('odom_frame_id'),
+            'gyro_frame_id': LaunchConfiguration('gyro_frame_id'),
         }]
-    )
-
-    # Static transform: base_footprint -> base_link
-    base_to_link = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='base_to_link',
-        arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'base_link']
-    )
-
-    # Static transform: base_footprint -> gyro_link
-    base_to_gyro = Node(
-        package='tf2_ros',
-        executable='static_transform_publisher',
-        name='base_to_gyro',
-        arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'gyro_link']
     )
 
     return LaunchDescription([
@@ -74,7 +68,6 @@ def generate_launch_description():
         baud_rate_arg,
         robot_frame_arg,
         odom_frame_arg,
-        autoracer_robot_node,
-        base_to_link,
-        base_to_gyro,
+        gyro_frame_arg,
+        autoracer_robot,
     ])

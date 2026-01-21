@@ -15,10 +15,16 @@ find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(autoracer_interfaces REQUIRED)
+find_package(serial REQUIRED)
 
-# Placeholder node for testing package structure
-add_executable(autoracer_robot_node src/autoracer_robot_node.cpp)
-ament_target_dependencies(autoracer_robot_node
+include_directories(include)
+
+add_executable(autoracer_robot
+  src/autoracer_robot.cpp
+  src/Quaternion_Solution.cpp
+)
+
+ament_target_dependencies(autoracer_robot
   rclcpp
   std_msgs
   geometry_msgs
@@ -28,10 +34,11 @@ ament_target_dependencies(autoracer_robot_node
   tf2_ros
   tf2_geometry_msgs
   autoracer_interfaces
+  serial
 )
 
 install(TARGETS
-  autoracer_robot_node
+  autoracer_robot
   DESTINATION lib/${PROJECT_NAME}
 )
 

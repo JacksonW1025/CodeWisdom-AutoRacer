@@ -18,9 +18,7 @@
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <depend>autoracer_interfaces</depend>
-
-  <!-- serial library for STM32 communication (to be added when implementing real driver) -->
-  <!-- <depend>serial</depend> -->
+  <depend>serial</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
