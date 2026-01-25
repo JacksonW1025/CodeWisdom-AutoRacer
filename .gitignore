@@ -6,6 +6,7 @@ AGENT.md
 CLAUDE.md
 AGENTLOG.md
 PROMPT.md
+PJINFO.md
 
 # ROS2 build artifacts
 build/
