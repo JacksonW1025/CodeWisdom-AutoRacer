@@ -2,12 +2,12 @@
 reference/
 
 # Agent files
-AGENT.md
-CLAUDE.md
-AGENTLOG.md
-PROMPT.md
-PJINFO.md
-TODO.md
+# AGENT.md
+# CLAUDE.md
+# AGENTLOG.md
+# PROMPT.md
+# PJINFO.md
+# TODO.md
 
 # ROS2 build artifacts
 build/
