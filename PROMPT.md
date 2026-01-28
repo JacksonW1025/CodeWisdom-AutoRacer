@@ -18,43 +18,37 @@
 - 工作区/仓库根路径
 
 ## 本次任务
-在 RViz2 中验证 ZED X 摄像头的可视化输出（RGB 图像、深度图、点云、IMU、Visual Odometry），参照 reference/zed-ros2-wrapper/README.md 中的 RViz visualization 章节。
+集成 N300 Pro IMU，参考 `reference/wheeltec_ros2` 的实现方式，替代 STM32 板载 MPU6050。
 
 ## 任务步骤
-1) 将 `reference/zed-ros2-examples/zed_display_rviz2/` 复制到 `src/` 下（不需要整个 zed-ros2-examples 仓库）
+1. 复制 hipnuc_imu 驱动包到 `src/`：
    ```bash
-   cp -r ~/CodeWisdom-AutoRacer/reference/zed-ros2-examples/zed_display_rviz2 ~/CodeWisdom-AutoRacer/src/
+   cp -r reference/wheeltec_ros2/src/wheeltec_imu/hipnuc_imu src/
    ```
-2) 检查 `zed_display_rviz2` 的依赖，按需修改 `package.xml` / `CMakeLists.txt`（确保引用 `src/zed-ros2-wrapper` 中的包）
-3) 构建 `zed_display_rviz2` 包
+2. 创建 udev 规则 `/etc/udev/rules.d/autoracer_imu.rules`：
+   ```
+   KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{serial}=="0003", MODE:="0777", GROUP:="dialout", SYMLINK+="autoracer_imu"
+   ```
+3. 修改 `hipnuc_imu/config/hipnuc_config.yaml`：
+   ```yaml
+   IMU_publisher:
+       ros__parameters:
+           serial_port: "/dev/autoracer_imu"
+           baud_rate: 115200
+           frame_id: "gyro_link"
+           imu_topic: "/imu/data_raw"
+   ```
+4. 修改 `turn_on_autoracer_robot` launch 文件，添加 IMU topic remapping：
+   - STM32 IMU: `/imu/data_raw` → `/imu/data_board` (remapped away)
+   - N300 Pro: 发布到 `/imu/data_raw`
+5. 添加 imu_filter_madgwick 节点（参考 wheeltec 的 imu.yaml）
+6. 配置 EKF 融合（参考 wheeltec 的 ekf.yaml）
+7. 编译测试：
    ```bash
-   cd ~/CodeWisdom-AutoRacer
-   colcon build --packages-select zed_display_rviz2 --symlink-install --parallel-workers 2
-   source install/setup.bash
+   colcon build --packages-select hipnuc_imu --symlink-install
+   ros2 launch hipnuc_imu imu_spec_msg.launch.py
+   ros2 topic echo /imu/data_raw
    ```
-4) 启动 ZED X 摄像头节点（如尚未运行）
-   ```bash
-   ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx
-   ```
-5) 启动 RViz2 预配置显示（新终端）
-   ```bash
-   ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx
-   ```
-   - 若构建失败，回退方案：手动 `rviz2`，手动添加以下 Display：
-     - Image → topic: `/zed/zed_node/left/image_rect_color`
-     - Image → topic: `/zed/zed_node/depth/depth_registered`
-     - PointCloud2 → topic: `/zed/zed_node/point_cloud/cloud_registered`
-     - Imu → topic: `/zed/zed_node/imu/data`
-     - Odometry → topic: `/zed/zed_node/odom`
-     - TF
-6) 逐项验证各 topic 在 RViz2 中正常显示：
-   - [ ] 左目 RGB 图像
-   - [ ] 深度图
-   - [ ] 点云
-   - [ ] IMU 数据
-   - [ ] Visual Odometry
-   - [ ] TF 树完整性
-7) 记录验证结果（截图/文字），更新 PJINFO.md / AGENTLOG.md / CLAUDE.md / TODO.md
 
 ## WORK 完成后必须更新
 1) `PJINFO.md`：只更新【自动】段落；“重要命令”只增不删  

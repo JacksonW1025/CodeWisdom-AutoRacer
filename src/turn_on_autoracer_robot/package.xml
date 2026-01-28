@@ -20,6 +20,11 @@
   <depend>autoracer_interfaces</depend>
   <depend>serial</depend>
 
+  <!-- N300 Pro IMU integration (runtime dependencies) -->
+  <exec_depend>hipnuc_imu</exec_depend>
+  <exec_depend>imu_filter_madgwick</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 

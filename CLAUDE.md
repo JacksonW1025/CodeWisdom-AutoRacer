@@ -31,6 +31,10 @@ CodeWisdom-AutoRacer/
 │   │   ├── zed_components/           # C++ ROS2 components
 │   │   ├── zed_wrapper/              # Launch files and configs
 │   │   └── zed_ros2/                 # Meta package
+│   ├── hipnuc_imu/                   # N300 Pro IMU driver (HI13 chip)
+│   │   ├── src/                      # Serial port + protocol decoder
+│   │   ├── config/hipnuc_config.yaml # IMU configuration
+│   │   └── launch/                   # Launch files
 │   └── depend/                       # Dependencies
 │       └── serial_ros2/              # Serial communication library
 ├── build/                            # CMake build artifacts (gitignored)
@@ -262,6 +266,42 @@ sudo apt-get install --allow-downgrades libpcap0.8=1.10.1-4build1 libpcap0.8-dev
 | `/zed/zed_node/odom` | Odometry | Visual odometry |
 | `/zed/zed_node/pose` | PoseStamped | Camera pose |
 
+## N300 Pro IMU
+
+| Property | Value |
+|----------|-------|
+| Model | Wheeltec N300 Pro (HI13 chip) |
+| USB Chip | Silicon Labs CP2102N |
+| idVendor | 10c4 |
+| idProduct | ea60 |
+| Serial | 0003 |
+| Device Path | /dev/ttyUSB0 |
+| Kernel Driver | cp210x |
+| Baud Rate | 115200 |
+| Symlink | /dev/autoracer_imu |
+| Driver | `src/hipnuc_imu/` (integrated 2026-01-28) |
+
+### N300 Pro Commands
+```bash
+# Launch N300 Pro IMU driver
+ros2 launch hipnuc_imu imu_spec_msg.launch.py
+
+# Check IMU data
+ros2 topic echo /imu/data_raw
+
+# Check IMU data rate
+ros2 topic hz /imu/data_raw
+
+# Launch full robot with N300 Pro (default)
+ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py
+
+# Launch without N300 Pro (use STM32 onboard MPU6050)
+ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_n300pro_imu:=false
+
+# Launch EKF fusion separately
+ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
+```
+
 ## Development Status
 
 **Completed**:
@@ -281,18 +321,57 @@ sudo apt-get install --allow-downgrades libpcap0.8=1.10.1-4build1 libpcap0.8-dev
 - **Leishen C32 LiDAR driver integrated** (2026-01-25): lslidar_ros v4.2.4, C32 version 3.0 detected, point cloud ~20Hz
 - **ZED X depth camera driver integrated** (2026-01-26): zed-ros2-wrapper v5.1.0, S/N 42256159 detected, RGB/depth/point cloud/IMU/Visual Odometry
 - **ZED X RViz2 visualization verified** (2026-01-27): zed_display_rviz2 from zed-ros2-examples, RGB image and depth map displayed in RViz2
+- **N300 Pro IMU device detected** (2026-01-28): CP2102N (10c4:ea60, serial=0003) at /dev/ttyUSB0, data stream verified
+- **N300 Pro IMU driver integrated** (2026-01-28): hipnuc_imu driver, udev rule (/dev/autoracer_imu), Madgwick filter, EKF config, IMU data publishing verified (/imu/data_raw)
 
-**TODO**:
-- LiDAR TF transform (laser → base_link, requires measuring installation position)
-- Navigation (Nav2)
-- SLAM mapping
-- Autonomous driving algorithms
+**TODO** (see TODO.md for full details):
+- **P0 Phase A**: Static TF for LiDAR/ZED X/IMU/GNSS (requires user measurement)
+- **P0 Phase B**: ~~N300 Pro IMU integration~~ ✅ Completed (hipnuc_imu + Madgwick filter + EKF fusion)
+- **P0 Phase C**: G90 GNSS+RTK integration (Unicore/NMEA driver)
+- **P0 Phase D**: URDF model, Ackermann messages, RViz config
+- **P1**: pointcloud_to_laserscan, Nav2, waypoint navigation
+- **P2**: SLAM (Cartographer, SLAM Toolbox, etc.)
+- **Sensor preparation checklist**: See TODO.md Section 2
+
+## Sensor Integration Reference (from Wheeltec)
+
+**udev device naming**:
+| Device | Symlink | Status |
+|--------|---------|--------|
+| STM32 | `/dev/autoracer_controller` | Configured |
+| N300 Pro IMU | `/dev/autoracer_imu` | Detected (10c4:ea60, serial=0003) |
+| G90 GNSS | `/dev/autoracer_gnss` | Pending (user USB ID needed) |
+
+**EKF fusion strategy** (robot_localization):
+- odom0: wheel odometry → vx, vy, vyaw (differential mode)
+- imu0: N300 Pro → yaw, vyaw (absolute mode, remove gravity)
+- Output: `odom_combined` frame, 30Hz, two_d_mode=true
+
+**IMU integration pattern** (from Wheeltec):
+- STM32 IMU remapped: `/imu/data_raw` → `/imu/data_board`
+- External IMU (hipnuc_imu) publishes: `/imu/data_raw` @100Hz
+- Madgwick filter: use_mag=false, world_frame=enu
+- EKF fuses odom + filtered IMU
 
 ## Frame Hierarchy
 
+**Current**:
 ```
 odom
 └── base_footprint (robot_frame_id)
     ├── base_link
     └── gyro_link
+```
+
+**Target** (after sensor integration):
+```
+map (from SLAM)
+└── odom_combined (from EKF)
+    └── base_footprint
+        ├── base_link → [wheel/steering frames from URDF]
+        ├── gyro_link (IMU, coincident with base_footprint)
+        ├── laser (LiDAR C32, measured position)
+        ├── zedx_camera_link (ZED X, measured position)
+        │   └── [ZED internal TF chain]
+        └── navsat_link (G90 GNSS antenna, measured position)
 ```

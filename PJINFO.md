@@ -120,6 +120,7 @@
   - `zed_wrapper`(zed-ros2-wrapper)：**ZED X 深度相机 Launch/Config 包** | nodes: 无 | launch: `zed_camera.launch.py` | 配置: `zedx.yaml`, `common_stereo.yaml`
   - `zed_ros2`(zed-ros2-wrapper)：ZED ROS2 Meta 包（依赖聚合） | nodes: 无 | launch: 无 | 接口: 无
   - `zed_display_rviz2`：**ZED X RViz2 可视化包** | nodes: 无（启动 rviz2） | launch: `display_zed_cam.launch.py` | 配置: `rviz2/zed_stereo.rviz`, `rviz2/zed_mono.rviz`
+  - `hipnuc_imu`：**N300 Pro IMU 驱动** | nodes: `talker`(IMU_publisher), `listener` | launch: `imu_spec_msg.launch.py` | 接口: pub `/imu/data_raw`(sensor_msgs/Imu)
 - 现聚焦的关键入口与运行链路：
   - 启动方式：
     - 完整启动（含TF）：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
@@ -225,15 +226,25 @@
   - **镭神 LiDAR C32 驱动集成完成**（2026-01-25）：lslidar_ros v4.2.4 移植到 `src/autoracer_lidar_ros2/`，点云发布 `/point_cloud_raw` (~20Hz)，激光扫描 `/scan_raw`，验证方式：`ros2 launch lslidar_driver lslidar_cx_launch.py`
   - **ZED X 深度相机驱动集成完成**（2026-01-26）：zed-ros2-wrapper v5.1.0 移植到 `src/zed-ros2-wrapper/`，检测到相机 S/N:42256159，发布话题 `/zed/left/color/rect/image`(RGB)、`/zed/depth/depth_map`(深度)、`/zed/depth/point_cloud`(点云)、`/zed/imu/data`(IMU)、`/zed/odom`(Visual Odometry)，验证方式：`ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx`
   - **ZED X RViz2 可视化验证通过**（2026-01-27）：从 `reference/zed-ros2-examples/` 移植 `zed_display_rviz2` 到 `src/`，RViz2 中成功显示 RGB 图像和深度图，验证方式：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx`
+  - **N300 Pro IMU 设备检测通过**（2026-01-28）：检测到 CP2102N USB to UART Bridge（idVendor=10c4, idProduct=ea60, serial=0003），设备路径 `/dev/ttyUSB0`，内核驱动 cp210x，串口数据流正常
+  - **N300 Pro IMU 驱动集成完成**（2026-01-28）：
+    - udev 规则：`/etc/udev/rules.d/autoracer_imu.rules` → `/dev/autoracer_imu`
+    - hipnuc_imu 驱动：从 `reference/wheeltec_ros2/src/wheeltec_imu/hipnuc_imu/` 移植到 `src/hipnuc_imu/`
+    - IMU topic remapping：STM32 `/imu/data_raw` → `/imu/data_board`（remapped away）
+    - Madgwick 滤波器：`config/imu.yaml`（use_mag=false, world_frame=enu）
+    - EKF 融合配置：`config/ekf.yaml`（odom + IMU → odom_combined）
+    - Launch 集成：`turn_on_autoracer_robot.launch.py`（use_n300pro_imu 参数）
+    - 验证方式：`ros2 launch hipnuc_imu imu_spec_msg.launch.py` + `ros2 topic echo /imu/data_raw`
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
-  - 【P0 核心基础】ZEDX pkgs, URDF 机器人模型、LiDAR TF 变换、Ackermann 消息、RViz 配置
+  - 【P0 核心基础】静态 TF 配置（LiDAR/ZED X/IMU/GNSS）、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、URDF 模型、Ackermann 消息、RViz 配置
   - 【P1 导航基础】pointcloud_to_laserscan、Nav2 配置、航点导航、路径跟随
   - 【P2 SLAM】Cartographer、SLAM Toolbox、GMapping、RTAB-Map、ORB-SLAM2、LeGO-LOAM、LIO-SAM
-  - 【P3 传感器】USB 摄像头、超声波避障、手柄控制、IMU 增强、GPS、深度相机
+  - 【P3 传感器】超声波避障、USB 摄像头、手柄控制、麦克风
   - 【P4 视觉/AI】目标跟随、KCF 跟踪、YOLO 检测、ArUco 标记、人体姿态、LLM 集成
   - 【P5 工具】Web 视频流、TTS 语音、RRT 规划、Qt GUI、多机器人、自动充电
-  - 总计：已完成 5/35+ 模块，待完成 34 项（详见 TODO.md）
+  - 总计：已完成 7/35+ 模块，待完成 34 项（详见 TODO.md）
+  - **传感器准备检查清单已生成**（2026-01-27）：详见 TODO.md 第二章，包含物理测量、硬件确认、用户决策三类准备工作
 - 已知问题（仅作记录，不代表现在要解决）：
   - IMU校准参数未设置（需实际标定）
 
@@ -258,6 +269,12 @@
   - ZED 话题测试：`ros2 topic list | grep zed`
   - **ZED X + RViz2 可视化**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx`
   - **仅 RViz2（相机已运行时）**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx start_zed_node:=False`
+  - **N300 Pro IMU 设备检测**：`lsusb | grep "10c4:ea60"` 或 `ls -la /dev/ttyUSB*`
+  - **N300 Pro udevadm 信息**：`udevadm info -a /dev/ttyUSB0 | grep -E '(idVendor|idProduct|serial)'`
+  - **N300 Pro IMU 驱动**：`ros2 launch hipnuc_imu imu_spec_msg.launch.py`
+  - **N300 Pro IMU 数据**：`ros2 topic echo /imu/data_raw`
+  - **完整启动（含 N300 Pro）**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - **EKF 融合单独启动**：`ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py`
 
 ## 主要命令（【参考】CLAUDE.md）
 - 关键入口：

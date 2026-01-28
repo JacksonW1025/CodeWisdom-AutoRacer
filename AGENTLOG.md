@@ -635,3 +635,138 @@ map
   - 缺失的 RViz 插件（`rviz_plugin_zed_od`、`nav2_rviz_plugins`）可后续按需安装
   - `grid_map_rviz_plugin` 可通过 `sudo apt install ros-humble-grid-map-rviz-plugin` 安装
   - 下一步建议：添加 LiDAR/ZED 静态 TF 变换，完成 P0 核心基础任务
+
+---
+
+## Entry 12: 传感器配置准备指南与 TODO 细化
+
+- Date: 2026-01-27
+- Agent: Claude Code (claude-opus-4-5-20251101)
+- Summary:
+  - 深入研究 reference/ 中全部传感器驱动与配置：N300 Pro IMU（hipnuc_imu）、G90 GNSS+RTK（wheeltec_dual_rtk_driver）、wheeltec 主 bringup（launch/TF/URDF/EKF）、超声波避障
+  - 提取了 5 个传感器的完整配置清单：硬件连接、串口配置、udev 规则、ROS2 话题/frame_id、yaml 参数、launch 参数
+  - 分析了 wheeltec 的传感器集成架构：base_serial → hipnuc_imu → imu_filter_madgwick → ekf_node，理解了 IMU 重映射策略和 EKF 融合配置
+  - 生成了结构化传感器配置准备指南，区分：Agent 可直接完成 / 用户需手动测量 / 用户需确认硬件 / 用户需做出决定
+  - 重构 TODO.md：新增"传感器准备检查清单"章节（物理测量、硬件确认、用户决策），将 P0 拆分为 Phase A~D（静态 TF → IMU+EKF → GNSS → URDF），将 IMU/GNSS 从 P3 提升到 P0，细化每个任务的具体子步骤和前置条件
+  - 新增 wheeltec 集成架构参考（launch 结构、TF 树目标、EKF 融合策略、udev 设备命名）
+  - 更新 PJINFO.md 待办列表
+- Modified/Created files:
+  - `TODO.md`: 重构，新增传感器准备检查清单（第二章）、P0 Phase A~D 细化、wheeltec 架构参考（第五章）
+  - `PJINFO.md`: 更新待办列表，反映 IMU/GNSS 优先级提升和准备检查清单
+  - `AGENTLOG.md`: 追加本次日志
+- How to run:
+  - 无新代码，本次为规划和文档工作
+- Notes / Next:
+  - 用户需完成传感器准备检查清单（TODO.md 第二章）后，Agent 才能开始传感器集成
+  - 优先级：(1) 测量 LiDAR/ZED X 安装位置 → (2) 连接 N300 Pro 确认 USB 设备 → (3) 连接 G90 确认 USB 设备
+  - Agent 下一步可执行：添加静态 TF（需用户提供测量数据）→ 移植 hipnuc_imu 驱动（需用户提供 USB ID）
+
+---
+
+## Entry 13: N300 Pro IMU 设备检测
+
+- Date: 2026-01-28
+- Agent: Claude Code (claude-opus-4-5-20251101)
+- Summary:
+  - 使用 `lsusb` 检测到 Silicon Labs CP210x UART Bridge (10c4:ea60)
+  - 确认设备路径为 `/dev/ttyUSB0`，内核驱动为 cp210x
+  - 使用 `udevadm info` 获取详细信息：idVendor=10c4, idProduct=ea60, serial=0003
+  - 参考 `reference/WHEELTEC_N300Pro/` 和 wheeltec udev 脚本，确认 serial=0003 对应 N300 Pro IMU
+  - 测试串口数据流正常（二进制 IMU 数据）
+  - 驱动配置：115200bps, frame_id=gyro_link, topic=/imu/data_raw
+- Modified/Created files:
+  - `PJINFO.md`: 更新当前状态（N300 Pro 检测通过）、重要命令（IMU 检测命令）
+  - `AGENTLOG.md`: 追加本次日志
+  - `CLAUDE.md`: 添加 N300 Pro 设备信息
+  - `TODO.md`: 更新任务 1b 状态为已完成
+- How to run:
+  - `lsusb | grep "10c4:ea60"` - 检测 CP210x 设备
+  - `ls -la /dev/ttyUSB*` - 查看串口设备
+  - `udevadm info -a /dev/ttyUSB0 | grep -E '(idVendor|idProduct|serial)'` - 获取详细信息
+- Notes / Next:
+  - N300 Pro IMU 设备确认，可进行下一步 udev 规则创建和驱动移植
+  - 建议符号链接：`/dev/autoracer_imu`
+  - 下一步：创建 udev 规则 (Task 3a) → 移植 hipnuc_imu 驱动 (Task 3b)
+
+### N300 Pro IMU 设备信息
+
+| 属性 | 值 |
+|------|-----|
+| 设备名称 | CP2102N USB to UART Bridge Controller |
+| 制造商 | Silicon Labs |
+| idVendor | 10c4 |
+| idProduct | ea60 |
+| Serial | 0003 |
+| 设备路径 | /dev/ttyUSB0 |
+| 内核驱动 | cp210x |
+| 波特率 | 115200 |
+| ROS2 话题 | /imu/data_raw |
+| frame_id | gyro_link |
+| 符号链接建议 | /dev/autoracer_imu |
+
+---
+
+## Entry 14: N300 Pro IMU 驱动集成
+
+- Date: 2026-01-28
+- Agent: Claude Code (claude-opus-4-5-20251101)
+- Summary:
+  - 从 `reference/wheeltec_ros2/src/wheeltec_imu/hipnuc_imu/` 复制 hipnuc_imu 驱动到 `src/`
+  - 创建 udev 规则 `/etc/udev/rules.d/autoracer_imu.rules`，建立 `/dev/autoracer_imu` 符号链接
+  - 修改 `hipnuc_config.yaml`：serial_port → `/dev/autoracer_imu`
+  - 更新 `turn_on_autoracer_robot.launch.py`：添加 `use_n300pro_imu` 参数，实现 STM32 IMU topic remapping (`/imu/data_raw` → `/imu/data_board`)
+  - 创建 `config/imu.yaml`：Madgwick 滤波器配置（use_mag=false, world_frame=enu）
+  - 创建 `config/ekf.yaml`：EKF 融合配置（odom + IMU → odom_combined）
+  - 创建 `launch/autoracer_ekf.launch.py`：EKF 单独启动文件
+  - 安装 `ros-humble-imu-filter-madgwick` 依赖
+  - 编译测试：hipnuc_imu 驱动正常工作，IMU 数据成功发布到 `/imu/data_raw`
+- Modified/Created files:
+  - `src/hipnuc_imu/`: 从 reference 复制的 N300 Pro IMU 驱动包
+  - `src/hipnuc_imu/config/hipnuc_config.yaml`: 修改串口为 `/dev/autoracer_imu`
+  - `src/hipnuc_imu/README.md`: 新增说明文档
+  - `/etc/udev/rules.d/autoracer_imu.rules`: N300 Pro udev 规则
+  - `src/turn_on_autoracer_robot/launch/turn_on_autoracer_robot.launch.py`: 集成 N300 Pro IMU
+  - `src/turn_on_autoracer_robot/launch/autoracer_ekf.launch.py`: EKF 启动文件
+  - `src/turn_on_autoracer_robot/config/imu.yaml`: Madgwick 滤波器配置
+  - `src/turn_on_autoracer_robot/config/ekf.yaml`: EKF 融合配置
+  - `src/turn_on_autoracer_robot/package.xml`: 添加 hipnuc_imu, imu_filter_madgwick, robot_localization 依赖
+  - `PJINFO.md`, `CLAUDE.md`, `TODO.md`: 更新文档
+- How to run:
+  - `ros2 launch hipnuc_imu imu_spec_msg.launch.py` - 单独启动 N300 Pro IMU
+  - `ros2 topic echo /imu/data_raw` - 查看 IMU 数据
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py` - 完整启动（含 N300 Pro）
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_n300pro_imu:=false` - 使用 STM32 板载 MPU6050
+  - `ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py` - 单独启动 EKF 融合
+- Notes / Next:
+  - N300 Pro IMU 驱动已集成，数据发布正常（四元数、角速度、线性加速度）
+  - EKF 融合配置已就绪，需与底盘驱动同时运行才能测试融合效果
+  - 下一步建议：
+    - 测量 LiDAR 和 ZED X 安装位置，添加静态 TF（Phase A）
+    - 实车测试 EKF 融合，调整噪声协方差参数
+    - 集成 G90 GNSS 驱动（Phase C）
+
+### IMU 集成架构
+
+```
+STM32 (MPU6050)                 N300 Pro (HI13)
+     │                               │
+     └── /imu/data_board ←──────┐    └── /imu/data_raw
+         (remapped, unused)     │         (active, ~100Hz)
+                                │              │
+                                │              ▼
+                                │    imu_filter_madgwick
+                                │         (滤波)
+                                │              │
+                                │              ▼
+┌─────────────────┐             │         /imu/data
+│ 轮式里程计      │             │              │
+│ /odom (STM32)   │─────────────┴──────────────┤
+└─────────────────┘                            │
+                                               ▼
+                                          ekf_node
+                                     (robot_localization)
+                                               │
+                                               ▼
+                                        /odom_combined
+                                      (融合后里程计)
+```

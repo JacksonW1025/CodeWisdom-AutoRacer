@@ -1,0 +1,12 @@
+# Madgwick IMU Filter 配置 (AutoRacer)
+# 参考: reference/wheeltec_ros2/src/turn_on_wheeltec_robot/config/imu.yaml
+#
+# 输入: /imu/data_raw (来自 N300 Pro hipnuc_imu)
+# 输出: /imu/data (滤波后，用于 EKF 融合)
+imu_filter_madgwick_node:
+    ros__parameters:
+        fixed_frame: "base_footprint"      # 输出坐标系
+        use_mag: false                     # 不使用磁力计（室内环境干扰大）
+        publish_tf: false                  # 不发布 TF（由 EKF 发布）
+        world_frame: "enu"                 # ENU 坐标系 (East-North-Up, REP-105)
+        orientation_stddev: 0.05           # 方向标准差
