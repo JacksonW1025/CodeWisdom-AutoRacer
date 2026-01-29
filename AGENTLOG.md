@@ -770,3 +770,123 @@ STM32 (MPU6050)                 N300 Pro (HI13)
                                         /odom_combined
                                       (融合后里程计)
 ```
+
+---
+
+## Entry 15: LiDAR C32 & ZED X 静态 TF 配置
+
+- Date: 2026-01-29
+- Agent: Claude Code (claude-opus-4-5-20251101)
+- Summary:
+  - 根据用户提供的车辆和传感器安装位置测量数据，配置静态 TF
+  - 车辆参数：长85cm，宽50cm，高40cm，前轴距车头15cm，后轴距车尾16cm
+  - 更新轴距：0.54m（之前错误记录为0.60m）
+  - 添加 base_footprint → base_link 的 Z 偏移（+0.11m，轴高度）
+  - 添加 base_link → laser（LiDAR C32）静态 TF：X=+0.24m, Y=0, Z=+0.39m, yaw=+90°
+  - 添加 base_link → zed_camera_link（ZED X）静态 TF：X=+0.34m, Y=0, Z=+0.29m
+  - 分析 ZED wrapper URDF 确认 frame 命名：zed_camera_link 是相机安装点，内部 TF 由 wrapper 发布
+  - LiDAR 坐标系（X左Y后Z上）需 yaw=+90° 旋转对齐 ROS 标准（X前Y左Z上）
+- Modified/Created files:
+  - `src/turn_on_autoracer_robot/launch/turn_on_autoracer_robot.launch.py`: 添加 LiDAR/ZED X 静态 TF
+  - `CLAUDE.md`: 更新 Key Parameters、Frame Hierarchy、Development Status
+  - `PJINFO.md`: 更新已完成列表、待办列表、Ackermann 轴距参数
+- How to run:
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - `ros2 run tf2_tools view_frames` - 查看 TF 树
+  - `ros2 topic echo /tf_static` - 查看静态 TF
+- Notes / Next:
+  - P0 Phase A（静态 TF）已完成，LiDAR 和 ZED X 的 TF 已配置
+  - 下一步建议：
+    - 启动完整系统验证 TF 树正确性（LiDAR + ZED X + 底盘）
+    - 在 RViz2 中可视化验证点云/深度图与机器人模型对齐
+    - 继续 P0 Phase C：G90 GNSS+RTK 集成
+    - 继续 P0 Phase D：URDF 模型创建
+
+### TF 配置详情
+
+| Parent Frame | Child Frame | X (m) | Y (m) | Z (m) | Yaw (rad) |
+|--------------|-------------|-------|-------|-------|-----------|
+| base_footprint | base_link | 0 | 0 | +0.11 | 0 |
+| base_footprint | gyro_link | 0 | 0 | 0 | 0 |
+| base_link | laser | +0.24 | 0 | +0.39 | +1.5708 |
+| base_link | zed_camera_link | +0.34 | 0 | +0.29 | 0 |
+
+### 坐标系说明
+
+```
+车辆俯视图 (ROS 坐标系: X前, Y左, Z上)
+
+            +X (前)
+              ↑
+     车头 ════════════ 15cm
+              │
+              │
+     ZED X    ●  (X=+0.34m, Z=+0.29m)
+              │
+     LiDAR    ◎  (X=+0.24m, Z=+0.39m, yaw=+90°)
+              │
+              │
+ ←+Y ─────────┼───────── 后轴中心 (base_link)
+              │
+              │
+     车尾 ════════════ 16cm
+```
+
+---
+
+## Entry 16: URDF 模型创建与 RViz 配置修复 (P0 Phase D)
+
+- Date: 2026-01-29
+- Agent: Claude Code (claude-opus-4-5-20251101)
+- Summary:
+  - 研究 Wheeltec `top_akm_bs_robot.urdf` 和 `robot_mode_description.launch.py` 的 URDF/TF 集成方式
+  - 创建 `autoracer_robot_urdf` 包（ament_cmake，纯资源包）
+  - 创建 Xacro 格式 URDF 模型 `autoracer.urdf.xacro`，包含：
+    - 底盘 box（0.85m×0.50m×0.20m），base_link 在后轴中心
+    - 后轮 × 2（continuous joint，半径 0.11m，轮距 0.48m）
+    - 前轮 × 2（revolute 转向节 ±22.5° + continuous 车轮，轴距 0.54m）
+    - LiDAR C32（fixed joint，X=+0.24m, Z=+0.39m, yaw=+90°）
+    - ZED X（fixed joint，X=+0.34m, Z=+0.29m）
+    - Xacro 宏：wheel_link、box_inertia、cylinder_inertia
+  - 创建 `robot_description.launch.py`（robot_state_publisher + joint_state_publisher）
+  - 更新主 launch `turn_on_autoracer_robot.launch.py`：
+    - 添加 `use_urdf` 参数（默认 true）
+    - 加载 URDF（robot_state_publisher + joint_state_publisher）
+    - 传感器 TF 改为 URDF 驱动（URDF 启用时移除 static_transform_publisher）
+  - 安装 `ros-humble-joint-state-publisher` 和 `ros-humble-joint-state-publisher-gui`
+  - 编译通过，`check_urdf` 验证 URDF 结构正确（6 children of base_link）
+  - **RViz 配置创建与修复**：
+    - 创建 `autoracer.rviz` RViz2 配置文件，包含 Grid、RobotModel、TF、LaserScan、Odometry 显示
+    - RobotModel 配置：Description Source 设为 Topic，订阅 `/robot_description`（Transient Local QoS）
+    - TF 显示：启用坐标轴，隐藏箭头和名称，Frame Timeout 设为 15s
+    - LaserScan 显示：订阅 `/scan_raw`，红色点显示（Size 0.03m），Best Effort QoS
+    - Odometry 显示：订阅 `/odom`，保留最近 100 帧，隐藏协方差
+    - 全局设置：Fixed Frame 设为 `base_link`，背景色 48/48/48（深灰），帧率 15fps
+    - 视角配置：Orbit 视图，距离 3m，Pitch 0.5，Yaw 2.5，近裁剪面 0.01
+    - 工具栏：Interact、MoveCamera、Select、FocusCamera、Measure
+- Modified/Created files:
+  - `src/autoracer_robot_urdf/`: 新建 URDF 包
+  - `src/autoracer_robot_urdf/package.xml`: ament_cmake + urdf + xacro
+  - `src/autoracer_robot_urdf/CMakeLists.txt`: 纯资源安装
+  - `src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro`: Xacro URDF 模型
+  - `src/autoracer_robot_urdf/launch/robot_description.launch.py`: Launch 文件
+  - `src/autoracer_robot_urdf/rviz/autoracer.rviz`: RViz2 配置（RobotModel + TF + LaserScan + Odometry）
+  - `src/autoracer_robot_urdf/README.md`: 包说明文档
+  - `src/turn_on_autoracer_robot/launch/turn_on_autoracer_robot.launch.py`: 集成 URDF
+  - `src/turn_on_autoracer_robot/package.xml`: 添加 URDF 依赖
+  - `PJINFO.md`, `CLAUDE.md`, `TODO.md`: 更新文档
+- How to run:
+  - `ros2 launch autoracer_robot_urdf robot_description.launch.py`
+  - `ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true`
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`（含 URDF）
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_urdf:=false`（不含 URDF）
+  - `rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz`
+- Notes / Next:
+  - URDF 模型使用简化几何体（box/cylinder），未使用 STL mesh
+  - 后续可替换为 CAD 导出的 STL mesh 提升可视化效果
+  - P0 Phase D 中 URDF 模型和 RViz 配置已完成，Ackermann 消息待后续实现
+  - RViz 配置已包含 AutoRacer 所有当前传感器的可视化（LaserScan + Odometry）
+  - 下一步建议：
+    - 在 RViz2 中验证 URDF 模型显示和 TF 树正确性
+    - 继续 P0 Phase C：G90 GNSS+RTK 集成
+    - 添加 `ackermann_msgs`（Task 6）

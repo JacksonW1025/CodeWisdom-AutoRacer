@@ -19,7 +19,7 @@ autoracer_robot:
     odom_z_scale_negative: 1.0
 
     # Ackermann-specific parameters (measured 2026-01-23)
-    wheelbase: 0.60           # Distance between front and rear axles (m)
+    wheelbase: 0.54           # Distance between front and rear axles (m)
     track_width: 0.48         # Distance between left and right wheels (m)
     wheel_radius: 0.11        # Wheel radius (m)
     max_steering_angle: 0.393 # Maximum steering angle (rad, ≈22.5°)

@@ -121,6 +121,7 @@
   - `zed_ros2`(zed-ros2-wrapper)：ZED ROS2 Meta 包（依赖聚合） | nodes: 无 | launch: 无 | 接口: 无
   - `zed_display_rviz2`：**ZED X RViz2 可视化包** | nodes: 无（启动 rviz2） | launch: `display_zed_cam.launch.py` | 配置: `rviz2/zed_stereo.rviz`, `rviz2/zed_mono.rviz`
   - `hipnuc_imu`：**N300 Pro IMU 驱动** | nodes: `talker`(IMU_publisher), `listener` | launch: `imu_spec_msg.launch.py` | 接口: pub `/imu/data_raw`(sensor_msgs/Imu)
+  - `autoracer_robot_urdf`：**URDF 机器人模型** | nodes: 无（资源包） | launch: `robot_description.launch.py` | 内容: Ackermann 底盘 Xacro URDF（4轮 + 2传感器 link）
 - 现聚焦的关键入口与运行链路：
   - 启动方式：
     - 完整启动（含TF）：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
@@ -221,7 +222,7 @@
   - Launch文件（autoracer_serial.launch.py、turn_on_autoracer_robot.launch.py）
   - 验证方式：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py` + `ros2 run autoracer_keyboard keyboard_control`
   - **硬件通信验证通过**：AGX Orin ↔ STM32 串口通信正常，STM32 显示屏显示 cmd_vel 数值变化（a/b/c/d 值）
-  - **Ackermann运动学参数已配置**（2026-01-23）：wheelbase=0.60m, track_width=0.48m, wheel_radius=0.11m, max_steering_angle=0.393rad(22.5°), min_turning_radius≈1.45m
+  - **Ackermann运动学参数已配置**（2026-01-23, 更新 2026-01-29）：wheelbase=0.54m, track_width=0.48m, wheel_radius=0.11m, max_steering_angle=0.393rad(22.5°)
   - **镭神 LiDAR C32 网络连接验证通过**（2026-01-23）：IP 192.168.1.200，ping 延迟 ~0.62ms，参考驱动 lslidar_ros 已确认
   - **镭神 LiDAR C32 驱动集成完成**（2026-01-25）：lslidar_ros v4.2.4 移植到 `src/autoracer_lidar_ros2/`，点云发布 `/point_cloud_raw` (~20Hz)，激光扫描 `/scan_raw`，验证方式：`ros2 launch lslidar_driver lslidar_cx_launch.py`
   - **ZED X 深度相机驱动集成完成**（2026-01-26）：zed-ros2-wrapper v5.1.0 移植到 `src/zed-ros2-wrapper/`，检测到相机 S/N:42256159，发布话题 `/zed/left/color/rect/image`(RGB)、`/zed/depth/depth_map`(深度)、`/zed/depth/point_cloud`(点云)、`/zed/imu/data`(IMU)、`/zed/odom`(Visual Odometry)，验证方式：`ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx`
@@ -235,21 +236,40 @@
     - EKF 融合配置：`config/ekf.yaml`（odom + IMU → odom_combined）
     - Launch 集成：`turn_on_autoracer_robot.launch.py`（use_n300pro_imu 参数）
     - 验证方式：`ros2 launch hipnuc_imu imu_spec_msg.launch.py` + `ros2 topic echo /imu/data_raw`
+  - **LiDAR C32 & ZED X 静态 TF 配置完成**（2026-01-29）：
+    - 车辆参数：长85cm，宽50cm，高40cm，前轴距车头15cm，后轴距车尾16cm，轴距54cm
+    - base_footprint → base_link：Z=+0.11m（轴高度）
+    - base_link → laser（LiDAR C32）：X=+0.24m, Y=0, Z=+0.39m, yaw=+90°
+    - base_link → zed_camera_link（ZED X）：X=+0.34m, Y=0, Z=+0.29m, yaw=0°
+    - 更新文件：`turn_on_autoracer_robot.launch.py`
+    - 验证方式：`ros2 run tf2_tools view_frames` 或 `ros2 topic echo /tf_static`
+  - **URDF 模型创建完成**（2026-01-29）：
+    - 创建 `autoracer_robot_urdf` 包（Xacro URDF）
+    - 底盘: box 0.85m×0.50m×0.20m，base_link 在后轴中心
+    - 后轮 × 2: continuous joint，半径 0.11m
+    - 前轮 × 2: revolute 转向节（±22.5°）+ continuous 车轮
+    - 传感器: laser（LiDAR C32）, zed_camera_link（ZED X）fixed joint
+    - 集成: robot_state_publisher + joint_state_publisher 集成到主 launch
+    - 验证方式: `ros2 launch autoracer_robot_urdf robot_description.launch.py` + `check_urdf`
+  - **RViz 配置完成**（2026-01-29）：
+    - `autoracer.rviz` 配置文件：Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom)
+    - Fixed Frame: base_link，Orbit 视图，Best Effort QoS for LaserScan
+    - 验证方式: `rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz`
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
-  - 【P0 核心基础】静态 TF 配置（LiDAR/ZED X/IMU/GNSS）、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、URDF 模型、Ackermann 消息、RViz 配置
+  - 【P0 核心基础】~~静态 TF 配置（LiDAR/ZED X）~~ ✅、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、~~URDF 模型~~ ✅、Ackermann 消息、~~RViz 配置~~ ✅
   - 【P1 导航基础】pointcloud_to_laserscan、Nav2 配置、航点导航、路径跟随
   - 【P2 SLAM】Cartographer、SLAM Toolbox、GMapping、RTAB-Map、ORB-SLAM2、LeGO-LOAM、LIO-SAM
   - 【P3 传感器】超声波避障、USB 摄像头、手柄控制、麦克风
   - 【P4 视觉/AI】目标跟随、KCF 跟踪、YOLO 检测、ArUco 标记、人体姿态、LLM 集成
   - 【P5 工具】Web 视频流、TTS 语音、RRT 规划、Qt GUI、多机器人、自动充电
-  - 总计：已完成 7/35+ 模块，待完成 34 项（详见 TODO.md）
+  - 总计：已完成 9/35+ 模块，待完成 32 项（详见 TODO.md）
   - **传感器准备检查清单已生成**（2026-01-27）：详见 TODO.md 第二章，包含物理测量、硬件确认、用户决策三类准备工作
 - 已知问题（仅作记录，不代表现在要解决）：
   - IMU校准参数未设置（需实际标定）
 
 ## 重要命令（【只增不删】）
-- source source_all.sh用于source ros2和autoracer workspace
+- REALLY IMPORTANT: source source_all.sh用于source ros2和autoracer workspace
 - LiDAR 连接测试：`ping 192.168.1.200`（镭神 C32，数据端口 2368/UDP）
 - build：
   - 完整构建：`colcon build --symlink-install`
@@ -275,6 +295,10 @@
   - **N300 Pro IMU 数据**：`ros2 topic echo /imu/data_raw`
   - **完整启动（含 N300 Pro）**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
   - **EKF 融合单独启动**：`ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py`
+  - **URDF 模型单独加载**：`ros2 launch autoracer_robot_urdf robot_description.launch.py`
+  - **URDF 带关节 GUI**：`ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true`
+  - **URDF 验证**：`check_urdf <(xacro src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro)`
+  - **不使用 URDF 启动**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_urdf:=false`
 
 ## 主要命令（【参考】CLAUDE.md）
 - 关键入口：

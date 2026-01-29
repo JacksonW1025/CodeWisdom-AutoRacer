@@ -81,15 +81,15 @@
 
 | # | 任务 | 前置条件 | Agent/用户 | 参考 | 复杂度 |
 |---|------|---------|-----------|------|-------|
-| 1a | **测量传感器安装位置** | 传感器已物理安装 | 用户 | Wheeltec URDF: `top_akm_bs_robot.urdf` | ⭐ |
+| 1a | **测量传感器安装位置** | 传感器已物理安装 | 用户 | ✅ 完成 (2026-01-29): LiDAR/ZED X 位置已测量 | ⭐ |
 | | - LiDAR: X, Y, Z (m), Yaw (rad) | | | 参考: xyz="0.24, 0, 0.15" rpy="-1.57, 0, 0" | |
 | | - ZED X: X, Y, Z (m), Pitch (rad) | | | 参考: xyz="0.31, 0, 0.13" rpy="0, 0, 0" | |
 | | - 底盘: 长, 宽, 高 (m) | | | | |
 | 1b | **确认 N300 Pro USB 设备信息** ✅ | IMU 已连接 | 用户 | ✅ 已完成 (2026-01-28): idVendor=10c4, idProduct=ea60, serial=0003, /dev/ttyUSB0 | ⭐ |
 | 1c | **确认 G90 USB 设备信息** | GNSS 已连接 | 用户 | 命令: `lsusb` + `udevadm info` | ⭐ |
-| 2a | **添加 LiDAR 静态 TF** | 1a 完成 | Agent | `turn_on_autoracer_robot.launch.py` 添加 `base_link → laser` | ⭐ |
-| 2b | **添加 ZED X 静态 TF** | 1a 完成 | Agent | launch 添加 `base_link → zedx_camera_link` | ⭐ |
-| 2c | **RViz TF 验证** | 2a+2b 完成 | Agent+用户 | RViz 中检查 TF 树、点云/深度数据对齐 | ⭐ |
+| 2a | **添加 LiDAR 静态 TF** | 1a 完成 | Agent | ✅ 完成 (2026-01-29): `base_link → laser` (X=+0.24m, Z=+0.39m, yaw=+90°) | ⭐ |
+| 2b | **添加 ZED X 静态 TF** | 1a 完成 | Agent | ✅ 完成 (2026-01-29): `base_link → zed_camera_link` (X=+0.34m, Z=+0.29m) | ⭐ |
+| 2c | **RViz TF 验证** | 2a+2b 完成 | Agent+用户 | 待验证: RViz 中检查 TF 树、点云/深度数据对齐 | ⭐ |
 
 #### Phase B: IMU + EKF 融合 ✅ (2026-01-28)
 
@@ -119,7 +119,7 @@
 
 | # | 任务 | 参考包路径 | 说明 | 复杂度 |
 |---|------|-----------|------|-------|
-| 5 | **创建 AutoRacer URDF** | `wheeltec_robot_urdf/urdf/top_akm_bs_robot.urdf` | 底盘 box + 4 轮 cylinder + 传感器 link | ⭐⭐⭐ |
+| 5 | **创建 AutoRacer URDF** ✅ | `wheeltec_robot_urdf/urdf/top_akm_bs_robot.urdf` | ✅ 完成 (2026-01-29): `autoracer_robot_urdf` 包, Xacro URDF, robot_state_publisher 集成 | ⭐⭐⭐ |
 | 6 | Ackermann 消息定义 | `depend/ackermann_msgs-ros2/` | Ackermann 转向标准消息类型 | ⭐ |
 | 7 | RViz 配置包 | `wheeltec_rviz2/` | 预配置 RViz 显示，便于调试和可视化 | ⭐⭐ |
 

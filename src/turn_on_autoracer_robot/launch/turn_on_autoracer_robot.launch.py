@@ -1,23 +1,32 @@
 """
 Launch file for AutoRacer robot bringup.
 
-This launch file starts the main chassis control node with N300 Pro IMU integration.
+This launch file starts the main chassis control node with N300 Pro IMU integration,
+URDF model (robot_state_publisher + joint_state_publisher), and static TF transforms.
+
 Reference: wheeltec_ros2/src/turn_on_wheeltec_robot/launch/turn_on_wheeltec_robot.launch.py
 
 IMU 集成策略（参考 wheeltec）:
 - STM32 板载 MPU6050: /imu/data_raw → /imu/data_board (remapped away, 不使用)
 - N300 Pro 外置 IMU: hipnuc_imu 发布到 /imu/data_raw (高精度，实际使用)
 - Madgwick 滤波器: /imu/data_raw → 滤波后用于 EKF
+
+URDF/TF 策略:
+- robot_state_publisher: 加载 URDF，发布 base_link → 车轮/传感器 TF
+- joint_state_publisher: 发布关节状态默认值
+- 静态 TF: base_footprint → base_link, base_footprint → gyro_link
+  (注意: laser 和 zed_camera_link 的 TF 由 URDF 中定义，通过 robot_state_publisher 发布)
 """
 
 import os
 from pathlib import Path
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, GroupAction
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, Command
 from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -57,6 +66,14 @@ def generate_launch_description():
         description='Use N300 Pro external IMU instead of STM32 onboard MPU6050'
     )
     use_n300pro_imu = LaunchConfiguration('use_n300pro_imu')
+
+    # 是否加载 URDF 模型 (默认 true)
+    use_urdf_arg = DeclareLaunchArgument(
+        'use_urdf',
+        default_value='true',
+        description='Load URDF model and start robot_state_publisher'
+    )
+    use_urdf = LaunchConfiguration('use_urdf')
 
     # IMU config for Madgwick filter
     imu_config = Path(autoracer_pkg, 'config', 'imu.yaml')
@@ -120,21 +137,69 @@ def generate_launch_description():
         }]
     )
 
+    # ========== URDF 模型 (robot_state_publisher + joint_state_publisher) ==========
+    # URDF 中定义了 base_link → 车轮/传感器的完整 TF 树
+    # robot_state_publisher 负责发布这些 TF (fixed joints 发布到 /tf_static)
+    urdf_pkg = get_package_share_directory('autoracer_robot_urdf')
+    xacro_file = os.path.join(urdf_pkg, 'urdf', 'autoracer.urdf.xacro')
+    robot_description = ParameterValue(
+        Command(['xacro ', xacro_file]),
+        value_type=str
+    )
+
+    robot_state_publisher = Node(
+        condition=IfCondition(use_urdf),
+        package='robot_state_publisher',
+        executable='robot_state_publisher',
+        name='robot_state_publisher',
+        output='screen',
+        parameters=[{'robot_description': robot_description}]
+    )
+
+    joint_state_publisher = Node(
+        condition=IfCondition(use_urdf),
+        package='joint_state_publisher',
+        executable='joint_state_publisher',
+        name='joint_state_publisher',
+        output='screen'
+    )
+
     # ========== Static TF transforms ==========
-    # base_footprint -> base_link
+    # base_footprint -> base_link: 当不使用 URDF 时的 fallback
+    # 使用 URDF 时，base_link 是 URDF 的根 link，不需要额外的 base_footprint → base_link TF
+    # 但 autoracer_robot 节点使用 base_footprint 作为 odom 的子帧，
+    # 所以仍需定义 base_footprint → base_link
     base_to_link = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_to_link',
-        arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'base_link']
+        arguments=['0', '0', '0.11', '0', '0', '0', 'base_footprint', 'base_link']
     )
 
-    # base_footprint -> gyro_link (IMU frame)
+    # base_footprint -> gyro_link (IMU frame, coincident with base_footprint)
     base_to_gyro = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_to_gyro',
         arguments=['0', '0', '0', '0', '0', '0', 'base_footprint', 'gyro_link']
+    )
+
+    # ========== 传感器 TF fallback (仅当不使用 URDF 时) ==========
+    # 当使用 URDF 时，laser 和 zed_camera_link 的 TF 由 robot_state_publisher 发布
+    base_to_laser = Node(
+        condition=UnlessCondition(use_urdf),
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_to_laser',
+        arguments=['0.24', '0', '0.39', '1.5708', '0', '0', 'base_link', 'laser']
+    )
+
+    base_to_zed = Node(
+        condition=UnlessCondition(use_urdf),
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_to_zed',
+        arguments=['0.34', '0', '0.29', '0', '0', '0', 'base_link', 'zed_camera_link']
     )
 
     return LaunchDescription([
@@ -144,13 +209,20 @@ def generate_launch_description():
         robot_frame_arg,
         odom_frame_arg,
         use_n300pro_imu_arg,
+        use_urdf_arg,
         # Robot nodes (conditional)
         autoracer_robot_with_n300pro,
         autoracer_robot_without_n300pro,
         # N300 Pro IMU (conditional)
         hipnuc_imu_launch,
         imu_filter_node,
-        # Static TF
+        # URDF model (conditional)
+        robot_state_publisher,
+        joint_state_publisher,
+        # Static TF (always)
         base_to_link,
         base_to_gyro,
+        # Sensor TF fallback (only when URDF not loaded)
+        base_to_laser,
+        base_to_zed,
     ])

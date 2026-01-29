@@ -35,6 +35,10 @@ CodeWisdom-AutoRacer/
 │   │   ├── src/                      # Serial port + protocol decoder
 │   │   ├── config/hipnuc_config.yaml # IMU configuration
 │   │   └── launch/                   # Launch files
+│   ├── autoracer_robot_urdf/         # URDF robot model (Ackermann)
+│   │   ├── urdf/autoracer.urdf.xacro # Xacro URDF model
+│   │   ├── launch/robot_description.launch.py  # robot_state_publisher
+│   │   └── rviz/autoracer.rviz       # RViz2 config
 │   └── depend/                       # Dependencies
 │       └── serial_ros2/              # Serial communication library
 ├── build/                            # CMake build artifacts (gitignored)
@@ -126,11 +130,23 @@ odom_frame_id: "odom"
 gyro_frame_id: "gyro_link"
 
 # Ackermann kinematics (measured 2026-01-23)
-wheelbase: 0.60           # Front-to-rear axle distance (m)
+wheelbase: 0.54           # Front-to-rear axle distance (m)
 track_width: 0.48         # Left-to-right wheel distance (m)
 wheel_radius: 0.11        # Wheel radius (m)
 max_steering_angle: 0.393 # Max steering angle (rad, ≈22.5°)
 # min_turning_radius: ~1.45m (calculated)
+
+# Vehicle dimensions (measured 2026-01-29)
+vehicle_length: 0.85      # Total length (m)
+vehicle_width: 0.50       # Total width (m)
+vehicle_height: 0.40      # Total height (m)
+front_axle_from_front: 0.15  # Front axle to front (m)
+rear_axle_from_rear: 0.16    # Rear axle to rear (m)
+
+# Sensor positions (relative to base_link, measured 2026-01-29)
+# base_link: rear axle center, at axle height (0.11m above ground)
+# LiDAR C32: X=+0.24m (forward), Y=0 (centerline), Z=+0.39m, yaw=+90°
+# ZED X:     X=+0.34m (forward), Y=0 (centerline), Z=+0.29m, yaw=0°
 ```
 
 ## Run Commands
@@ -142,8 +158,11 @@ ros2 run turn_on_autoracer_robot autoracer_robot
 # Launch serial node only
 ros2 launch turn_on_autoracer_robot autoracer_serial.launch.py
 
-# Launch with TF transforms
+# Launch with TF transforms + URDF model
 ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py
+
+# Launch without URDF (fallback to static TF only)
+ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_urdf:=false
 
 # Custom serial port
 ros2 launch turn_on_autoracer_robot autoracer_serial.launch.py \
@@ -178,6 +197,15 @@ ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx
 
 # RViz2 only (if ZED camera node already running)
 ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx start_zed_node:=False
+
+# URDF model only (robot_state_publisher + joint_state_publisher)
+ros2 launch autoracer_robot_urdf robot_description.launch.py
+
+# URDF with joint GUI (debugging)
+ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true
+
+# RViz2 with AutoRacer model
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz
 ```
 
 ## Keyboard Control
@@ -323,12 +351,15 @@ ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
 - **ZED X RViz2 visualization verified** (2026-01-27): zed_display_rviz2 from zed-ros2-examples, RGB image and depth map displayed in RViz2
 - **N300 Pro IMU device detected** (2026-01-28): CP2102N (10c4:ea60, serial=0003) at /dev/ttyUSB0, data stream verified
 - **N300 Pro IMU driver integrated** (2026-01-28): hipnuc_imu driver, udev rule (/dev/autoracer_imu), Madgwick filter, EKF config, IMU data publishing verified (/imu/data_raw)
+- **LiDAR C32 & ZED X static TF configured** (2026-01-29): base_link→laser (X=+0.24m, Z=+0.39m, yaw=+90°), base_link→zed_camera_link (X=+0.34m, Z=+0.29m)
+- **URDF model created** (2026-01-29): autoracer_robot_urdf package, Xacro URDF with Ackermann steering (4 wheels + 2 sensors), robot_state_publisher + joint_state_publisher integrated into main bringup launch
+- **RViz config created** (2026-01-29): autoracer.rviz with Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom), Fixed Frame=base_link, Orbit view
 
 **TODO** (see TODO.md for full details):
-- **P0 Phase A**: Static TF for LiDAR/ZED X/IMU/GNSS (requires user measurement)
+- **P0 Phase A**: ~~Static TF for LiDAR/ZED X~~ ✅ Completed (2026-01-29)
 - **P0 Phase B**: ~~N300 Pro IMU integration~~ ✅ Completed (hipnuc_imu + Madgwick filter + EKF fusion)
 - **P0 Phase C**: G90 GNSS+RTK integration (Unicore/NMEA driver)
-- **P0 Phase D**: URDF model, Ackermann messages, RViz config
+- **P0 Phase D**: ~~URDF model~~ ✅ Completed (2026-01-29), Ackermann messages (pending), ~~RViz config~~ ✅ Completed (2026-01-29)
 - **P1**: pointcloud_to_laserscan, Nav2, waypoint navigation
 - **P2**: SLAM (Cartographer, SLAM Toolbox, etc.)
 - **Sensor preparation checklist**: See TODO.md Section 2
@@ -355,23 +386,29 @@ ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
 
 ## Frame Hierarchy
 
-**Current**:
+**Current** (2026-01-29, with URDF):
 ```
 odom
-└── base_footprint (robot_frame_id)
-    ├── base_link
-    └── gyro_link
+└── base_footprint (Z=0, ground level)
+    ├── base_link (Z=+0.11m, axle height, URDF root)
+    │   ├── rear_left_wheel_link (Y=+0.24m, continuous)
+    │   ├── rear_right_wheel_link (Y=-0.24m, continuous)
+    │   ├── front_left_steering_link (X=+0.54m, Y=+0.24m, revolute ±22.5°)
+    │   │   └── front_left_wheel_link (continuous)
+    │   ├── front_right_steering_link (X=+0.54m, Y=-0.24m, revolute ±22.5°)
+    │   │   └── front_right_wheel_link (continuous)
+    │   ├── laser (X=+0.24m, Z=+0.39m, yaw=+90°, fixed)
+    │   └── zed_camera_link (X=+0.34m, Z=+0.29m, fixed)
+    │       └── [ZED internal TF: camera_center, left/right_camera_frame, etc.]
+    └── gyro_link (coincident with base_footprint)
 ```
 
-**Target** (after sensor integration):
+**Target** (after GNSS integration):
 ```
 map (from SLAM)
 └── odom_combined (from EKF)
     └── base_footprint
-        ├── base_link → [wheel/steering frames from URDF]
-        ├── gyro_link (IMU, coincident with base_footprint)
-        ├── laser (LiDAR C32, measured position)
-        ├── zedx_camera_link (ZED X, measured position)
-        │   └── [ZED internal TF chain]
-        └── navsat_link (G90 GNSS antenna, measured position)
+        ├── base_link (URDF root, wheel/steering/sensor frames)
+        ├── gyro_link (IMU)
+        └── navsat_link (G90 GNSS antenna, pending)
 ```
