@@ -51,7 +51,7 @@
   <!-- 传感器位置 (相对 base_link) -->
   <xacro:property name="lidar_x" value="0.24"/>
   <xacro:property name="lidar_z" value="0.39"/>
-  <xacro:property name="lidar_yaw" value="1.5708"/>
+  <xacro:property name="lidar_yaw" value="-1.5708"/>
 
   <xacro:property name="zed_x" value="0.34"/>
   <xacro:property name="zed_z" value="0.29"/>

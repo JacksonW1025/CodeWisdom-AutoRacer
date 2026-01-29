@@ -67,6 +67,22 @@ Visualization Manager:
         Value: /scan_raw
       Color: 255; 0; 0
       Size (m): 0.03
+    - Class: rviz_default_plugins/PointCloud2
+      Name: PointCloud2
+      Enabled: true
+      Value: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /point_cloud_raw
+      Size (Pixels): 2
+      Style: Points
+      Color Transformer: Intensity
+      Decay Time: 0
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
     - Class: rviz_default_plugins/Odometry
       Name: Odometry
       Enabled: true

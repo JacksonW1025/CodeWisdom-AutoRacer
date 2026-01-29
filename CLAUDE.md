@@ -145,7 +145,9 @@ rear_axle_from_rear: 0.16    # Rear axle to rear (m)
 
 # Sensor positions (relative to base_link, measured 2026-01-29)
 # base_link: rear axle center, at axle height (0.11m above ground)
-# LiDAR C32: X=+0.24m (forward), Y=0 (centerline), Z=+0.39m, yaw=+90°
+# LiDAR C32: X=+0.24m (forward), Y=0 (centerline), Z=+0.39m, yaw=-90°
+# LiDAR coordinate (coordinate_opt=false): +Y=front(0°), +X=right(90°), +Z=up
+# Cable exit at rear, LiDAR config cable position=180°, so 0°=front
 # ZED X:     X=+0.34m (forward), Y=0 (centerline), Z=+0.29m, yaw=0°
 ```
 
@@ -351,7 +353,7 @@ ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
 - **ZED X RViz2 visualization verified** (2026-01-27): zed_display_rviz2 from zed-ros2-examples, RGB image and depth map displayed in RViz2
 - **N300 Pro IMU device detected** (2026-01-28): CP2102N (10c4:ea60, serial=0003) at /dev/ttyUSB0, data stream verified
 - **N300 Pro IMU driver integrated** (2026-01-28): hipnuc_imu driver, udev rule (/dev/autoracer_imu), Madgwick filter, EKF config, IMU data publishing verified (/imu/data_raw)
-- **LiDAR C32 & ZED X static TF configured** (2026-01-29): base_link→laser (X=+0.24m, Z=+0.39m, yaw=+90°), base_link→zed_camera_link (X=+0.34m, Z=+0.29m)
+- **LiDAR C32 & ZED X static TF configured** (2026-01-29): base_link→laser (X=+0.24m, Z=+0.39m, yaw=-90°), base_link→zed_camera_link (X=+0.34m, Z=+0.29m)
 - **URDF model created** (2026-01-29): autoracer_robot_urdf package, Xacro URDF with Ackermann steering (4 wheels + 2 sensors), robot_state_publisher + joint_state_publisher integrated into main bringup launch
 - **RViz config created** (2026-01-29): autoracer.rviz with Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom), Fixed Frame=base_link, Orbit view
 
@@ -397,7 +399,7 @@ odom
     │   │   └── front_left_wheel_link (continuous)
     │   ├── front_right_steering_link (X=+0.54m, Y=-0.24m, revolute ±22.5°)
     │   │   └── front_right_wheel_link (continuous)
-    │   ├── laser (X=+0.24m, Z=+0.39m, yaw=+90°, fixed)
+    │   ├── laser (X=+0.24m, Z=+0.39m, yaw=-90°, fixed)
     │   └── zed_camera_link (X=+0.34m, Z=+0.29m, fixed)
     │       └── [ZED internal TF: camera_center, left/right_camera_frame, etc.]
     └── gyro_link (coincident with base_footprint)

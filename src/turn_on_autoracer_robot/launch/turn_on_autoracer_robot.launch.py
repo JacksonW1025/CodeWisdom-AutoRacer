@@ -191,7 +191,7 @@ def generate_launch_description():
         package='tf2_ros',
         executable='static_transform_publisher',
         name='base_to_laser',
-        arguments=['0.24', '0', '0.39', '1.5708', '0', '0', 'base_link', 'laser']
+        arguments=['0.24', '0', '0.39', '-1.5708', '0', '0', 'base_link', 'laser']
     )
 
     base_to_zed = Node(

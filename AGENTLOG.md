@@ -890,3 +890,47 @@ STM32 (MPU6050)                 N300 Pro (HI13)
     - 在 RViz2 中验证 URDF 模型显示和 TF 树正确性
     - 继续 P0 Phase C：G90 GNSS+RTK 集成
     - 添加 `ackermann_msgs`（Task 6）
+
+## Entry 10: LiDAR C32 点云朝向修正 & TF yaw 调试
+
+- **日期**: 2026-01-29
+- **Agent**: Claude Code (claude-opus-4-5-20251101)
+
+### 摘要
+- 排查并修复了 RViz2 中 LiDAR 点云朝向与车辆朝向不一致的问题
+- 确认了 URDF 传感器位置正确（ZED X 在 LiDAR 和车头之间，距车头 35cm）
+- 修正了 CLAUDE.md 文档中 LiDAR yaw 的错误记录（+90° → -90°）
+- 发现并解决了旧 ROS2 进程残留导致 TF 变更不生效的问题
+
+### 问题分析
+1. **点云 180° 朝向问题**：用户观察到 RViz2 中点云朝向与预期差 180°
+2. **修改不生效**：多次修改 URDF lidar_yaw 值后，RViz2 中无任何变化
+3. **根因**：累积了 4 个 `robot_state_publisher` 进程同时运行，最早的进程持续发布旧 TF
+
+### LiDAR C32 坐标系确认
+- **物理安装**：线缆出口朝向车尾，LiDAR 配置中线缆位置设为 180°
+- **驱动参数**：`coordinate_opt: false`（0° 方位角 → laser frame +Y 方向）
+- **laser frame 坐标系**：+Y = 前方(0°), +X = 右侧(90°), +Z = 上方
+- **TF 旋转**：base_link→laser yaw = -90°（-π/2 = -1.5708 rad）
+- **映射结果**：
+  - laser +Y (前方) → base_link +X (forward) ✓
+  - laser +X (右侧) → base_link -Y (right) ✓
+  - laser +Z (上方) → base_link +Z (up) ✓
+
+### 修改的文件
+- `src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro`: lidar_yaw 确认为 -1.5708（-90°）
+- `src/turn_on_autoracer_robot/launch/turn_on_autoracer_robot.launch.py`: fallback static TF yaw 确认为 -1.5708
+- `CLAUDE.md`: 修正 LiDAR yaw 文档（+90° → -90°），添加坐标系说明
+- `PJINFO.md`: 更新 LiDAR TF 修正状态
+
+### 经验教训
+- **重启前务必杀掉所有旧 ROS2 进程**：`pkill -f robot_state_publisher && pkill -f joint_state_publisher`
+- **多个 robot_state_publisher 同时运行会导致 TF 冲突**，最早启动的进程可能持续生效
+- **验证 TF 变更**：使用 `ros2 run tf2_ros tf2_echo base_link laser` 确认实际 TF 值
+
+- How to run:
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - `ros2 run tf2_ros tf2_echo base_link laser`（验证 TF）
+- Notes / Next:
+  - LiDAR 点云朝向已在 RViz2 中验证正确
+  - 继续 P0 Phase C：G90 GNSS+RTK 集成

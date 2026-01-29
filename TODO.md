@@ -63,7 +63,7 @@
 
 | 决策 | 选项 | 建议 |
 |------|-----|------|
-| 是否用 N300 Pro 替代 STM32 板载 MPU6050？ | 是/否 | **推荐：是**（N300 Pro 精度远高于 MPU6050，wheeltec 也这样做） |
+| 是否用 N300 Pro 替代 STM32 板载 MPU6050？ | 是 | **推荐：是**（N300 Pro 精度远高于 MPU6050，wheeltec 也这样做） |
 | IMU X 轴方向朝前 | 对齐车辆前进方向 |
 | G90 使用 Unicore 还是 NMEA 协议？ | Unicore/NMEA | **推荐：Unicore**（包含双天线 heading/pitch/roll） |
 | 是否启用超声波避障？ | 是/否 | 可后续启用 |

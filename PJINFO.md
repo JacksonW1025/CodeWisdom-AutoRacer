@@ -239,7 +239,7 @@
   - **LiDAR C32 & ZED X 静态 TF 配置完成**（2026-01-29）：
     - 车辆参数：长85cm，宽50cm，高40cm，前轴距车头15cm，后轴距车尾16cm，轴距54cm
     - base_footprint → base_link：Z=+0.11m（轴高度）
-    - base_link → laser（LiDAR C32）：X=+0.24m, Y=0, Z=+0.39m, yaw=+90°
+    - base_link → laser（LiDAR C32）：X=+0.24m, Y=0, Z=+0.39m, yaw=-90°（-1.5708 rad）
     - base_link → zed_camera_link（ZED X）：X=+0.34m, Y=0, Z=+0.29m, yaw=0°
     - 更新文件：`turn_on_autoracer_robot.launch.py`
     - 验证方式：`ros2 run tf2_tools view_frames` 或 `ros2 topic echo /tf_static`
@@ -255,6 +255,13 @@
     - `autoracer.rviz` 配置文件：Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom)
     - Fixed Frame: base_link，Orbit 视图，Best Effort QoS for LaserScan
     - 验证方式: `rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz`
+  - **LiDAR C32 点云朝向修正**（2026-01-29）：
+    - 修正 CLAUDE.md 文档 yaw 记录（+90° → -90°）
+    - LiDAR 坐标系（coordinate_opt=false）：+Y=前方(0°), +X=右侧(90°), +Z=上方
+    - 物理安装：线缆出口朝车尾，LiDAR 配置线缆位置=180°（0°=车头方向）
+    - TF：base_link→laser yaw=-90°（-1.5708 rad），将 laser +Y(前) 映射到 base_link +X(forward)
+    - 排查经验：多个 robot_state_publisher 残留进程会导致 TF 变更不生效
+    - 验证方式: `ros2 run tf2_ros tf2_echo base_link laser`
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
   - 【P0 核心基础】~~静态 TF 配置（LiDAR/ZED X）~~ ✅、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、~~URDF 模型~~ ✅、Ackermann 消息、~~RViz 配置~~ ✅
@@ -332,6 +339,7 @@
 
 ## 其它注意事项（【手动】）
 - READ reference/ first!
+- If you wanna run any node of src/,run source /home/car/CodeWisdom-AutoRacer/source_all.sh first to source env.
 - 我给予你sudo权限，密码是car，但是请你不要滥用sudo的操作，并向我确认。
 - 和我交互时使用简体中文，专业名称和表达使用英文。
 - 如果你遇到困难，最多尝试 3 次，则向我寻求建议。

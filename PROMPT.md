@@ -17,53 +17,43 @@
 - 参考资料：`reference/`
 - 工作区/仓库根路径
 
-## 本次任务
-P0 Phase D: URDF 模型创建
+## 本次任务（我在对话框输入或简单写在此处，UPDATE 会具体细化）
+**LiDAR C32 点云与车辆朝向 180° 旋转错误修复**
 
-## 任务步骤
-1. 研究 Wheeltec URDF 参考：
-   - 阅读 `reference/wheeltec_ros2/src/wheeltec_robot_urdf/` 结构
-   - 分析 `urdf/top_akm_bs_robot.urdf`（Ackermann 底盘模型）
-   - 理解 `robot_mode_description.launch.py` 的 robot_state_publisher 集成方式
+现象：运行 URDF/TF + LiDAR 驱动后，在 RViz2 中观察到车辆后方对应的是实际前方的点云（即点云整体旋转了 180°）。需要排查 LiDAR 坐标系定义与 TF 中 yaw 旋转角的配置是否正确。
 
-2. 创建 `autoracer_robot_urdf` 包：
-   - 使用 ament_cmake 构建
-   - 包含 `urdf/`, `meshes/`（如需要）, `launch/` 目录
-   - 参考 Wheeltec 包结构
+## 任务步骤 （UPDATE 会具体细化，需要理解我的口头表述，将一个复杂的任务拆解）
 
-3. 创建 AutoRacer URDF 模型（`autoracer.urdf.xacro`）：
-   - 底盘：box（0.85m×0.50m×0.40m）
-   - 4 个车轮：cylinder（半径 0.11m）
-   - base_footprint → base_link（Z=+0.11m）
-   - base_link → [front_left/right_wheel, rear_left/right_wheel]
-   - 传感器 link（laser, zed_camera_link）可选择内联或引用主 launch 的静态 TF
-   - 使用 Xacro 宏定义车轮，减少重复代码
+### 步骤 1：阅读镭神 C32 用户手册，确认 LiDAR 自身坐标系定义
+- 阅读 `reference/docs/1.镭神智能_C32_用户手册_V2.7.8_20241015.pdf`
+- 重点关注：坐标系定义（X/Y/Z 轴方向）、0° 角方向（通常为线缆出口方向或前面板方向）
+- 记录 LiDAR 原生坐标系与 ROS REP-103 标准坐标系（X前 Y左 Z上）的差异
 
-4. 参数配置：
-   - 使用 CLAUDE.md 中的 Ackermann 参数：wheelbase=0.54m, track_width=0.48m, wheel_radius=0.11m
-   - 使用测量的车辆尺寸：长=0.85m, 宽=0.50m, 高=0.40m
-   - 前轴距车头=0.15m, 后轴距车尾=0.16m
+### 步骤 2：检查 LiDAR 驱动的坐标系输出配置
+- 阅读 `src/autoracer_lidar_ros2/lslidar_ros/lslidar_driver/` 驱动代码
+- 检查 `params/lslidar_cx.yaml` 中的 frame_id、角度偏移等配置参数
+- 确认驱动是否已对原始数据做了坐标系变换（部分驱动会在内部完成旋转）
 
-5. 创建 Launch 文件（`robot_description.launch.py`）：
-   - 加载 URDF 到参数服务器
-   - 启动 robot_state_publisher
-   - 启动 joint_state_publisher（带 GUI 选项）
+### 步骤 3：检查当前 TF 配置中 LiDAR 的 yaw 旋转
+- 阅读 `src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro` 中 `laser` link 的 joint 定义
+- 当前配置：base_link → laser，yaw=+90°（+1.5708 rad）
+- 分析：当前 yaw=+90° 的假设是 LiDAR 坐标系为"X左 Y后 Z上"，如果手册显示不同则需修正
 
-6. 集成到主 bringup launch：
-   - 更新 `turn_on_autoracer_robot.launch.py`
-   - 添加 `use_urdf` 参数（默认 true）
-   - 从静态 TF 迁移到 URDF（传感器 link）
+### 步骤 4：确定正确的旋转角度并修复
+- 根据步骤 1-3 的分析结果，计算正确的 yaw 旋转值
+- 可能的情况：
+  - 如果 LiDAR 0° 方向指向线缆方向（后方），可能需要 yaw=0° 或 yaw=180°
+  - 如果驱动已做了坐标变换，可能 yaw=+90° 本身多余
+- 修改 URDF 中 laser joint 的 rpy 参数
+- 同步修改 `turn_on_autoracer_robot.launch.py` 中 `use_urdf:=false` 回退路径的静态 TF
 
-7. 验证：
-   - `ros2 run tf2_tools view_frames` 检查 TF 树
-   - 在 RViz2 中添加 RobotModel 显示
-   - 检查车轮、传感器位置是否正确
+### 步骤 5：验证修复结果
+- 重新编译 `autoracer_robot_urdf` 包
+- 启动 LiDAR 驱动 + URDF/TF，在 RViz2 中检查点云是否与车辆朝向一致
+- 验证方式：面对车辆前方的障碍物应在 RViz2 中显示在车辆模型前方, wait user to check. ask the user if can continue
 
-8. 更新文档：
-   - PJINFO.md（已完成列表、重要命令）
-   - CLAUDE.md（Run Commands、Development Status）
-   - TODO.md（标记 Task 5 完成）
-   - AGENTLOG.md（追加日志）
+### 步骤 6：更新项目文档
+- 更新 `PJINFO.md`、`AGENTLOG.md`、`CLAUDE.md`、`TODO.md`
 
 ## WORK 完成后必须更新
 1) `PJINFO.md`：只更新【自动】段落；“重要命令”只增不删  
