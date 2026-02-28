@@ -1,0 +1,100 @@
+# AutoRacer LIO-SAM 配置文件
+# 基于 params.yaml 默认配置，适配 AutoRacer 硬件
+# LiDAR: 镭神 C32 (与 Wheeltec 一致)
+# IMU:   N300 Pro (HI13 芯片, ~100Hz)
+# 平台:  NVIDIA Jetson AGX Orin
+
+/**:
+  ros__parameters:
+
+    # Topics
+    pointCloudTopic: "/point_cloud_raw"       # lslidar_driver 发布的点云话题
+    imuTopic: "/imu/data_raw"                 # N300 Pro IMU 话题
+    odomTopic: "odometry/imu"                 # IMU 预积分里程计（LIO-SAM 内部）
+    gpsTopic: "odometry/gpsz"                 # GPS 话题（暂未使用）
+
+    # Frames（与 AutoRacer TF 树一致）
+    lidarFrame: "laser"
+    baselinkFrame: "base_footprint"
+    odometryFrame: "odom"
+    mapFrame: "map"
+
+    # GPS Settings（暂未集成 G90 GNSS，先关闭）
+    useImuHeadingInitialization: false
+    useGpsElevation: false
+    gpsCovThreshold: 1.0                      # m^2
+    poseCovThreshold: 1.0                     # m^2
+
+    # Export settings
+    savePCD: true
+    savePCDDirectory: "/home/car/CodeWisdom-AutoRacer/src/autoracer_robot_slam/LIO-SAM-ROS2/data/"
+
+    # Sensor Settings（镭神 C32, 与 Wheeltec 同款硬件）
+    sensor: velodyne                          # C32 使用 velodyne 兼容点云格式（含 ring + time 字段）
+    N_SCAN: 32                                # C32 = 32 通道
+    Horizon_SCAN: 1500                        # 水平分辨率
+    downsampleRate: 1
+    lidarMinRange: 1.0                        # 最小探测距离 (m)
+    lidarMaxRange: 200.0                      # C32 最大探测距离 200m
+
+    # IMU Settings（N300 Pro / HI13 芯片）
+    # 使用 Wheeltec 默认噪声参数作为初始值，后续可通过 Allan 方差标定优化
+    imuAccNoise: 3.9939570888238808e-03
+    imuGyrNoise: 1.5636343949698187e-03
+    imuAccBiasN: 6.4356659353532566e-05
+    imuGyrBiasN: 3.5640318696367613e-05
+
+    imuGravity: 9.80511
+    imuRPYWeight: 0.01
+
+    # IMU → LiDAR 外参
+    # AutoRacer TF: gyro_link(0,0,0) → base_link(0,0,+0.11) → laser(+0.24,0,+0.39,yaw=-90°)
+    # 平移: IMU 到 LiDAR 的偏移 [X=+0.24, Y=0, Z=+0.50]
+    # 旋转: 使用单位阵作为初始值（与 Wheeltec 同款 LiDAR+IMU 的配置一致）
+    #        后续如建图质量不佳，需校准 yaw=-90° 对应的旋转矩阵
+    extrinsicTrans:  [ 0.24,  0.0,  0.50 ]
+    extrinsicRot:    [1.0,  0.0,  0.0,
+                       0.0,  1.0,  0.0,
+                       0.0,  0.0,  1.0 ]
+    extrinsicRPY: [ 1.0,  0.0,  0.0,
+                    0.0,  1.0,  0.0,
+                    0.0,  0.0,  1.0 ]
+
+    # LOAM feature threshold
+    edgeThreshold: 1.0
+    surfThreshold: 0.1
+    edgeFeatureMinValidNum: 10
+    surfFeatureMinValidNum: 100
+
+    # voxel filter params（室外场景默认值）
+    odometrySurfLeafSize: 0.4
+    mappingCornerLeafSize: 0.2
+    mappingSurfLeafSize: 0.4
+
+    # robot motion constraint（地面车辆，限制 Z 轴漂移）
+    z_tollerance: 2.0                         # meters
+    rotation_tollerance: 1000.0               # radians
+
+    # CPU Params（Jetson AGX Orin 多核）
+    numberOfCores: 4
+    mappingProcessInterval: 0.15              # seconds
+
+    # Surrounding map
+    surroundingkeyframeAddingDistThreshold: 1.0
+    surroundingkeyframeAddingAngleThreshold: 0.2
+    surroundingKeyframeDensity: 2.0
+    surroundingKeyframeSearchRadius: 50.0
+
+    # Loop closure
+    loopClosureEnableFlag: true
+    loopClosureFrequency: 1.0                 # Hz
+    surroundingKeyframeSize: 50
+    historyKeyframeSearchRadius: 15.0         # meters
+    historyKeyframeSearchTimeDiff: 30.0       # seconds
+    historyKeyframeSearchNum: 25
+    historyKeyframeFitnessScore: 0.3          # ICP 阈值，越小对齐越严格
+
+    # Visualization
+    globalMapVisualizationSearchRadius: 1000.0
+    globalMapVisualizationPoseDensity: 10.0
+    globalMapVisualizationLeafSize: 1.0

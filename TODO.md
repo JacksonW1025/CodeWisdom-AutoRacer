@@ -19,7 +19,7 @@
 | **ZED X 深度相机** | `zed-ros2-wrapper` | `zed-ros2-wrapper` (官方 v5.1.0) | ✅ 完成 (2026-01-26) |
 | **ZED X RViz2 可视化** | `zed_display_rviz2` | `zed-ros2-examples/zed_display_rviz2` | ✅ 完成 (2026-01-27) |
 
-**已完成: 7/35+ 模块**
+**已完成: 8/35+ 模块**
 
 ### 1.2 缺失功能统计
 
@@ -166,7 +166,7 @@
 | 15 | RTAB-Map | `wheeltec_robot_rtab/` | 3D SLAM，支持视觉+激光 | ⭐⭐⭐⭐ |
 | 16 | ORB-SLAM2 | `wheeltec_robot_slam/orb_slam_2_ros-ros2/` | 视觉 SLAM | ⭐⭐⭐⭐ |
 | 17 | LeGO-LOAM | `wheeltec_robot_slam/LeGO-LOAM-SR-master/` | 3D LiDAR SLAM | ⭐⭐⭐⭐ |
-| 18 | LIO-SAM | `wheeltec_robot_slam/LIO-SAM-ROS2/` | LiDAR-IMU 紧耦合 SLAM | ⭐⭐⭐⭐ |
+| 18 | ~~LIO-SAM~~ ✅ | `autoracer_robot_slam/LIO-SAM-ROS2/` | LiDAR-IMU 紧耦合 SLAM (2026-02-28, GTSAM 4.2.0) | ⭐⭐⭐⭐ |
 
 ### P3 - 传感器扩展（增强感知）
 

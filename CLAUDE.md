@@ -39,6 +39,11 @@ CodeWisdom-AutoRacer/
 │   │   ├── urdf/autoracer.urdf.xacro # Xacro URDF model
 │   │   ├── launch/robot_description.launch.py  # robot_state_publisher
 │   │   └── rviz/autoracer.rviz       # RViz2 config
+│   ├── autoracer_robot_slam/         # SLAM algorithms
+│   │   └── LIO-SAM-ROS2/            # LIO-SAM (LiDAR-Inertial SLAM)
+│   │       ├── src/                  # 5 C++ nodes (GTSAM factor graph)
+│   │       ├── config/autoracer_params.yaml  # AutoRacer config
+│   │       └── launch/autoracer_run.launch.py  # AutoRacer launch
 │   └── depend/                       # Dependencies
 │       └── serial_ros2/              # Serial communication library
 ├── build/                            # CMake build artifacts (gitignored)
@@ -103,6 +108,12 @@ source install/setup.bash
 
 **zed_wrapper**:
 - zed_components, robot_state_publisher
+
+**lio_sam**:
+- rclcpp, sensor_msgs, nav_msgs, geometry_msgs
+- tf2, tf2_ros, tf2_eigen, tf2_sensor_msgs, tf2_geometry_msgs
+- pcl_conversions, pcl_msgs, visualization_msgs
+- OpenCV, PCL, GTSAM (ros-humble-gtsam 4.2.0), Eigen
 
 ## ROS2 Topics
 
@@ -208,6 +219,15 @@ ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_pub
 
 # RViz2 with AutoRacer model
 rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz
+
+# LIO-SAM 3D SLAM (needs chassis + LiDAR + IMU running first)
+ros2 launch lio_sam autoracer_run.launch.py
+
+# LIO-SAM save map
+ros2 service call /lio_sam/save_map lio_sam/srv/SaveMap "{resolution: 0.2, destination: ''}"
+
+# LIO-SAM build
+colcon build --packages-select lio_sam --symlink-install --parallel-workers 2
 ```
 
 ## Keyboard Control
@@ -356,6 +376,7 @@ ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
 - **LiDAR C32 & ZED X static TF configured** (2026-01-29): base_link→laser (X=+0.24m, Z=+0.39m, yaw=-90°), base_link→zed_camera_link (X=+0.34m, Z=+0.29m)
 - **URDF model created** (2026-01-29): autoracer_robot_urdf package, Xacro URDF with Ackermann steering (4 wheels + 2 sensors), robot_state_publisher + joint_state_publisher integrated into main bringup launch
 - **RViz config created** (2026-01-29): autoracer.rviz with Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom), Fixed Frame=base_link, Orbit view
+- **LIO-SAM 3D SLAM integrated** (2026-02-28): LIO-SAM-ROS2 from Wheeltec reference, GTSAM 4.2.0, autoracer_params.yaml (C32 N_SCAN=32 + N300 Pro IMU), 5 nodes compiled and verified, launch: `ros2 launch lio_sam autoracer_run.launch.py`
 
 **TODO** (see TODO.md for full details):
 - **P0 Phase A**: ~~Static TF for LiDAR/ZED X~~ ✅ Completed (2026-01-29)

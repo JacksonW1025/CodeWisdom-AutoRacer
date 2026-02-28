@@ -934,3 +934,39 @@ STM32 (MPU6050)                 N300 Pro (HI13)
 - Notes / Next:
   - LiDAR 点云朝向已在 RViz2 中验证正确
   - 继续 P0 Phase C：G90 GNSS+RTK 集成
+
+---
+
+## Entry 18: LIO-SAM 3D SLAM 集成
+
+- Date: 2026-02-28
+- Agent: Claude Code (claude-opus-4-6)
+- Summary:
+  - 研究 Wheeltec 参考中的 LIO-SAM 实现（`reference/wheeltec_ros2/src/wheeltec_robot_slam/LIO-SAM-ROS2/`）
+  - 通过 apt 安装 GTSAM 4.2.0 依赖（`ros-humble-gtsam`），PCL/OpenCV/Eigen 已预装
+  - 创建 `src/autoracer_robot_slam/` 目录结构（对应 Wheeltec 的 `wheeltec_robot_slam/`，方便后续扩展其他 SLAM 算法）
+  - 从 reference 复制 LIO-SAM-ROS2 到 `src/autoracer_robot_slam/LIO-SAM-ROS2/`
+  - 确认 lslidar C32 点云字段（`ring` uint16_t + `time` float）与 LIO-SAM `VelodynePointXYZIRT` 完全兼容
+  - 创建 `config/autoracer_params.yaml`：适配 C32 LiDAR（N_SCAN=32）+ N300 Pro IMU + AutoRacer TF 外参
+  - 创建 `launch/autoracer_run.launch.py`：仅 LIO-SAM 核心节点 + RViz2，不包含 bringup/传感器
+  - 编译通过（2min 39s），5 个节点全部正常启动验证通过
+- Modified/Created files:
+  - `src/autoracer_robot_slam/LIO-SAM-ROS2/`: 从 reference 复制的 LIO-SAM 包
+  - `src/autoracer_robot_slam/LIO-SAM-ROS2/config/autoracer_params.yaml`: AutoRacer 专用配置
+  - `src/autoracer_robot_slam/LIO-SAM-ROS2/launch/autoracer_run.launch.py`: AutoRacer Launch 文件
+  - `src/autoracer_robot_slam/LIO-SAM-ROS2/data/`: PCD 地图保存目录
+  - `PJINFO.md`: 更新项目结构、ROS2 packages、启动方式、已完成状态、重要命令
+  - `CLAUDE.md`: 更新 Project Structure、Package Dependencies、Run Commands、Development Status
+  - `TODO.md`: 更新 LIO-SAM 状态为已完成
+- How to run:
+  - `ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
+  - 完整测试流程：
+    - 终端 1: `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+    - 终端 2: `ros2 launch lslidar_driver lslidar_cx_launch.py`
+    - 终端 3: `ros2 launch lio_sam autoracer_run.launch.py`
+  - 保存地图: `ros2 service call /lio_sam/save_map lio_sam/srv/SaveMap "{resolution: 0.2, destination: ''}"`
+- Notes / Next:
+  - IMU→LiDAR 旋转外参暂用单位阵（与 Wheeltec 同款硬件一致），建图效果不佳时需校准
+  - N300 Pro IMU ~100Hz 低于 LIO-SAM 推荐的 200Hz+，需实测观察影响
+  - 后续可集成 G90 GNSS 使用 `run_gnss.launch.py` 启用 GPS 因子优化
+  - `autoracer_robot_slam/` 目录可后续加入 Cartographer、SLAM Toolbox 等其他算法
