@@ -48,16 +48,17 @@
     imuRPYWeight: 0.01
 
     # IMU → LiDAR 外参
-    # AutoRacer TF: gyro_link(0,0,0) → base_link(0,0,+0.11) → laser(+0.24,0,+0.39,yaw=-90°)
-    # 平移: IMU 到 LiDAR 的偏移 [X=+0.24, Y=0, Z=+0.50]
-    # 旋转: 使用单位阵作为初始值（与 Wheeltec 同款 LiDAR+IMU 的配置一致）
-    #        后续如建图质量不佳，需校准 yaw=-90° 对应的旋转矩阵
+    # IMU N300 Pro: X=前, Y=左, Z=上 (REP-103)
+    # LiDAR C32 (coordinate_opt=false): X=右, Y=前, Z=上
+    # 旋转: IMU_X(前)→LiDAR_Y(前), IMU_Y(左)→LiDAR_-X(-右), IMU_Z(上)→LiDAR_Z(上)
+    #        即绕 Z 轴旋转 +90°
+    # 平移: gyro_link→base_link(+0.11m Z) + base_link→laser(+0.24m X, +0.39m Z) = [0.24, 0, 0.50]
     extrinsicTrans:  [ 0.24,  0.0,  0.50 ]
-    extrinsicRot:    [1.0,  0.0,  0.0,
-                       0.0,  1.0,  0.0,
+    extrinsicRot:    [ 0.0, -1.0,  0.0,
+                       1.0,  0.0,  0.0,
                        0.0,  0.0,  1.0 ]
-    extrinsicRPY: [ 1.0,  0.0,  0.0,
-                    0.0,  1.0,  0.0,
+    extrinsicRPY: [ 0.0, -1.0,  0.0,
+                    1.0,  0.0,  0.0,
                     0.0,  0.0,  1.0 ]
 
     # LOAM feature threshold

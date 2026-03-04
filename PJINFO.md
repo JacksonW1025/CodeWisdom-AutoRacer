@@ -271,8 +271,16 @@
     - 确认 lslidar C32 点云兼容性：`ring`(uint16_t) + `time`(float) 字段与 LIO-SAM VelodynePointXYZIRT 完全匹配
     - 创建 `launch/autoracer_run.launch.py`：仅 LIO-SAM 节点 + RViz2（不含 bringup/传感器驱动）
     - 编译通过，5 个节点全部正常启动
-    - IMU→LiDAR 外参：extrinsicTrans=[0.24, 0.0, 0.50]，旋转暂用单位阵（与 Wheeltec 同款硬件一致）
     - 验证方式：`ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
+  - **LIO-SAM 实车首次测试 & 外参修正**（2026-03-03）：
+    - 测试环境：室内狭小空间（杂物密集），车辆静止，C32 LiDAR + N300 Pro IMU + STM32 C63A
+    - 传感器数据正常：LiDAR `/point_cloud_raw` ~20Hz，IMU `/imu/data_raw` ~100Hz，LIO-SAM 里程计 ~6.5Hz
+    - **修正 IMU→LiDAR 旋转外参**：单位阵 → 绕 Z 轴 +90° 旋转矩阵 `[[0,-1,0],[1,0,0],[0,0,1]]`
+      - IMU N300 Pro 坐标系：X=前, Y=左, Z=上（REP-103）
+      - C32 LiDAR 坐标系（`coordinate_opt=false`）：X=右, Y=前, Z=上
+      - 修正后静止 Z 漂移从 0.75m 降至 0.27m
+    - 已知问题：室内杂乱环境面特征不足（~90-100，阈值 100），需到结构化环境测试
+    - 详细问题清单见 `src/autoracer_robot_slam/LIO-SAM-ROS2/TODO.md`
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
   - 【P0 核心基础】~~静态 TF 配置（LiDAR/ZED X）~~ ✅、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、~~URDF 模型~~ ✅、Ackermann 消息、~~RViz 配置~~ ✅
