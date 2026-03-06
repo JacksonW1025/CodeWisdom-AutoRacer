@@ -38,12 +38,29 @@ CodeWisdom-AutoRacer/
 │   ├── autoracer_robot_urdf/         # URDF robot model (Ackermann)
 │   │   ├── urdf/autoracer.urdf.xacro # Xacro URDF model
 │   │   ├── launch/robot_description.launch.py  # robot_state_publisher
-│   │   └── rviz/autoracer.rviz       # RViz2 config
+│   │   └── rviz/                      # RViz2 configs
+│   │       ├── autoracer.rviz         # Default (all displays, Fixed Frame: map)
+│   │       ├── urdf.rviz              # URDF model + TF (Fixed Frame: base_link)
+│   │       ├── pointcloud.rviz        # Point cloud viewing (Fixed Frame: base_link)
+│   │       ├── slam.rviz              # 2D SLAM mapping (Fixed Frame: map, TopDown)
+│   │       └── nav2.rviz              # Nav2 navigation (Fixed Frame: map, costmaps + goals)
 │   ├── autoracer_robot_slam/         # SLAM algorithms
-│   │   └── LIO-SAM-ROS2/            # LIO-SAM (LiDAR-Inertial SLAM)
-│   │       ├── src/                  # 5 C++ nodes (GTSAM factor graph)
-│   │       ├── config/autoracer_params.yaml  # AutoRacer config
-│   │       └── launch/autoracer_run.launch.py  # AutoRacer launch
+│   │   ├── LIO-SAM-ROS2/            # LIO-SAM (LiDAR-Inertial SLAM)
+│   │   │   ├── src/                  # 5 C++ nodes (GTSAM factor graph)
+│   │   │   ├── config/autoracer_params.yaml  # AutoRacer config
+│   │   │   └── launch/autoracer_run.launch.py  # AutoRacer launch
+│   │   ├── autoracer_slam_toolbox/   # SLAM Toolbox 2D SLAM
+│   │   │   ├── config/mapper_params_online_sync.yaml  # SLAM config
+│   │   │   └── launch/slam.launch.py  # 2D SLAM launch
+│   │   ├── openslam_gmapping/        # GMapping core algorithm library
+│   │   └── slam_gmapping/            # GMapping 2D SLAM (particle filter)
+│   │       ├── src/slam_gmapping.cpp  # ROS2 wrapper node
+│   │       └── launch/slam_gmapping.launch.py  # GMapping launch
+│   ├── autoracer_robot_nav2/         # Nav2 navigation stack
+│   │   ├── param/autoracer_nav2_params.yaml  # Nav2 params (MPPI Ackermann)
+│   │   ├── launch/navigation.launch.py  # Navigation launch
+│   │   ├── launch/save_map.launch.py    # Map saving utility
+│   │   └── map/                      # Saved maps (.pgm + .yaml)
 │   └── depend/                       # Dependencies
 │       └── serial_ros2/              # Serial communication library
 ├── build/                            # CMake build artifacts (gitignored)
@@ -109,6 +126,14 @@ source install/setup.bash
 **zed_wrapper**:
 - zed_components, robot_state_publisher
 
+**openslam_gmapping**:
+- ament_cmake (pure C++ library, no ROS dependencies)
+
+**slam_gmapping**:
+- rclcpp, std_msgs, nav_msgs, sensor_msgs, visualization_msgs
+- tf2, tf2_ros, tf2_geometry_msgs, message_filters
+- openslam_gmapping
+
 **lio_sam**:
 - rclcpp, sensor_msgs, nav_msgs, geometry_msgs
 - tf2, tf2_ros, tf2_eigen, tf2_sensor_msgs, tf2_geometry_msgs
@@ -125,6 +150,8 @@ source install/setup.bash
 | `/PowerVoltage` | std_msgs/Float32 | Battery voltage (pub) |
 | `/point_cloud_raw` | sensor_msgs/PointCloud2 | LiDAR point cloud (pub, ~20Hz) |
 | `/scan_raw` | sensor_msgs/LaserScan | LiDAR laser scan (pub) |
+| `/scan` | sensor_msgs/LaserScan | 2D scan from pointcloud_to_laserscan (pub) |
+| `/map` | nav_msgs/OccupancyGrid | SLAM/Nav2 occupancy grid map (pub) |
 | `/zed/zed_node/left/image_rect_color` | sensor_msgs/Image | ZED X left RGB image (pub) |
 | `/zed/zed_node/depth/depth_registered` | sensor_msgs/Image | ZED X depth map (pub) |
 | `/zed/zed_node/point_cloud/cloud_registered` | sensor_msgs/PointCloud2 | ZED X depth point cloud (pub) |
@@ -217,8 +244,12 @@ ros2 launch autoracer_robot_urdf robot_description.launch.py
 # URDF with joint GUI (debugging)
 ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true
 
-# RViz2 with AutoRacer model
-rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz
+# RViz2 configs (choose one based on use case)
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz    # Default (all displays)
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/urdf.rviz         # URDF model + TF only
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/pointcloud.rviz   # Point cloud viewing
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/slam.rviz         # 2D SLAM mapping (top-down)
+rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/nav2.rviz         # Nav2 navigation (costmaps + goals)
 
 # LIO-SAM 3D SLAM (needs chassis + LiDAR + IMU running first)
 ros2 launch lio_sam autoracer_run.launch.py
@@ -228,6 +259,39 @@ ros2 service call /lio_sam/save_map lio_sam/srv/SaveMap "{resolution: 0.2, desti
 
 # LIO-SAM build
 colcon build --packages-select lio_sam --symlink-install --parallel-workers 2
+
+# SLAM Toolbox 2D mapping (needs chassis + LiDAR running first)
+ros2 launch autoracer_slam_toolbox slam.launch.py
+
+# SLAM Toolbox without RViz2
+ros2 launch autoracer_slam_toolbox slam.launch.py use_rviz:=false
+
+# SLAM Toolbox with EKF odometry
+ros2 launch autoracer_slam_toolbox slam.launch.py odom_frame:=odom_combined
+
+# GMapping 2D SLAM (needs chassis + LiDAR running first)
+ros2 launch slam_gmapping slam_gmapping.launch.py
+
+# GMapping without RViz2
+ros2 launch slam_gmapping slam_gmapping.launch.py use_rviz:=false
+
+# Build GMapping packages
+colcon build --packages-select openslam_gmapping slam_gmapping --symlink-install --parallel-workers 2
+
+# Nav2 navigation with saved map (needs chassis + LiDAR running first)
+ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/autoracer_map.yaml
+
+# Nav2 in SLAM mode (simultaneous mapping + navigation)
+ros2 launch autoracer_robot_nav2 navigation.launch.py slam:=True
+
+# Save map (while SLAM Toolbox is running)
+ros2 launch autoracer_robot_nav2 save_map.launch.py
+
+# Save map with custom name
+ros2 launch autoracer_robot_nav2 save_map.launch.py map_name:=my_map
+
+# Build SLAM Toolbox + Nav2 packages
+colcon build --packages-select autoracer_slam_toolbox autoracer_robot_nav2 --symlink-install
 ```
 
 ## Keyboard Control
@@ -377,14 +441,17 @@ ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py
 - **URDF model created** (2026-01-29): autoracer_robot_urdf package, Xacro URDF with Ackermann steering (4 wheels + 2 sensors), robot_state_publisher + joint_state_publisher integrated into main bringup launch
 - **RViz config created** (2026-01-29): autoracer.rviz with Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom), Fixed Frame=base_link, Orbit view
 - **LIO-SAM 3D SLAM integrated** (2026-02-28): LIO-SAM-ROS2 from Wheeltec reference, GTSAM 4.2.0, autoracer_params.yaml (C32 N_SCAN=32 + N300 Pro IMU), 5 nodes compiled and verified, launch: `ros2 launch lio_sam autoracer_run.launch.py`
+- **SLAM Toolbox 2D SLAM integrated** (2026-03-03): system package slam_toolbox + pointcloud_to_laserscan, autoracer_slam_toolbox config wrapper, /point_cloud_raw → /scan conversion, launch: `ros2 launch autoracer_slam_toolbox slam.launch.py`
+- **Nav2 navigation stack integrated** (2026-03-03): system package navigation2, autoracer_robot_nav2 config wrapper, MPPI Ackermann controller (min_turning_r=1.45m), SmacPlannerHybrid (Reeds-Shepp), AMCL localization, launch: `ros2 launch autoracer_robot_nav2 navigation.launch.py`
+- **GMapping 2D SLAM integrated** (2026-03-06): openslam_gmapping (core library) + slam_gmapping (ROS2 wrapper) from Wheeltec reference, particle filter RBPF, pointcloud_to_laserscan integration, launch: `ros2 launch slam_gmapping slam_gmapping.launch.py`
 
 **TODO** (see TODO.md for full details):
 - **P0 Phase A**: ~~Static TF for LiDAR/ZED X~~ ✅ Completed (2026-01-29)
 - **P0 Phase B**: ~~N300 Pro IMU integration~~ ✅ Completed (hipnuc_imu + Madgwick filter + EKF fusion)
 - **P0 Phase C**: G90 GNSS+RTK integration (Unicore/NMEA driver)
 - **P0 Phase D**: ~~URDF model~~ ✅ Completed (2026-01-29), Ackermann messages (pending), ~~RViz config~~ ✅ Completed (2026-01-29)
-- **P1**: pointcloud_to_laserscan, Nav2, waypoint navigation
-- **P2**: SLAM (Cartographer, SLAM Toolbox, etc.)
+- **P1**: ~~pointcloud_to_laserscan~~ ✅, ~~Nav2~~ ✅, waypoint navigation
+- **P2**: SLAM (Cartographer, ~~SLAM Toolbox~~ ✅, ~~GMapping~~ ✅, etc.)
 - **Sensor preparation checklist**: See TODO.md Section 2
 
 ## Sensor Integration Reference (from Wheeltec)

@@ -19,7 +19,7 @@
 | **ZED X 深度相机** | `zed-ros2-wrapper` | `zed-ros2-wrapper` (官方 v5.1.0) | ✅ 完成 (2026-01-26) |
 | **ZED X RViz2 可视化** | `zed_display_rviz2` | `zed-ros2-examples/zed_display_rviz2` | ✅ 完成 (2026-01-27) |
 
-**已完成: 8/35+ 模块**
+**已完成: 13/35+ 模块**（含 N300 Pro IMU, URDF, RViz, LIO-SAM, SLAM Toolbox, Nav2, pointcloud_to_laserscan）
 
 ### 1.2 缺失功能统计
 
@@ -151,8 +151,8 @@
 
 | # | 任务 | 参考包路径 | 说明 | 复杂度 |
 |---|------|-----------|------|-------|
-| 8 | pointcloud_to_laserscan | `wheeltec_lidar_ros2/pointcloud_to_laserscan-humble/` | 将 3D 点云转换为 2D LaserScan，Nav2 需要 | ⭐⭐ |
-| 9 | Nav2 配置包 | `wheeltec_robot_nav2/` | Nav2 参数、launch 文件、地图配置 | ⭐⭐⭐ |
+| 8 | ~~pointcloud_to_laserscan~~ ✅ | `autoracer_slam_toolbox/launch/slam.launch.py` | 集成在 SLAM/Nav2 launch 中，系统包 (2026-03-03) | ⭐⭐ |
+| 9 | ~~Nav2 配置包~~ ✅ | `autoracer_robot_nav2/` | MPPI Ackermann + SmacPlannerHybrid + AMCL (2026-03-03) | ⭐⭐⭐ |
 | 10 | 航点导航 | `nav2_waypoint_cycle/` | 多航点循环导航功能 | ⭐⭐ |
 | 11 | 路径跟随 | `wheeltec_path_follow/` | 预定义路径跟踪控制 | ⭐⭐ |
 
@@ -161,8 +161,8 @@
 | # | 任务 | 参考包路径 | 说明 | 复杂度 |
 |---|------|-----------|------|-------|
 | 12 | Cartographer | `wheeltec_robot_slam/wheeltec_cartographer/` | Google 激光 SLAM，推荐首选 | ⭐⭐⭐ |
-| 13 | SLAM Toolbox | `wheeltec_robot_slam/wheeltec_slam_toolbox/` | 另一个流行的 2D SLAM | ⭐⭐⭐ |
-| 14 | GMapping | `wheeltec_robot_slam/slam_gmapping/` | 经典 2D SLAM（备选） | ⭐⭐ |
+| 13 | ~~SLAM Toolbox~~ ✅ | `autoracer_robot_slam/autoracer_slam_toolbox/` | 2D SLAM 已集成，系统包 (2026-03-03) | ⭐⭐⭐ |
+| 14 | ~~GMapping~~ ✅ | `autoracer_robot_slam/slam_gmapping/` | 粒子滤波 2D SLAM 已集成 (2026-03-06) | ⭐⭐ |
 | 15 | RTAB-Map | `wheeltec_robot_rtab/` | 3D SLAM，支持视觉+激光 | ⭐⭐⭐⭐ |
 | 16 | ORB-SLAM2 | `wheeltec_robot_slam/orb_slam_2_ros-ros2/` | 视觉 SLAM | ⭐⭐⭐⭐ |
 | 17 | LeGO-LOAM | `wheeltec_robot_slam/LeGO-LOAM-SR-master/` | 3D LiDAR SLAM | ⭐⭐⭐⭐ |

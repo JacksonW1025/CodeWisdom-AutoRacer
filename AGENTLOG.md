@@ -970,3 +970,96 @@ STM32 (MPU6050)                 N300 Pro (HI13)
   - N300 Pro IMU ~100Hz 低于 LIO-SAM 推荐的 200Hz+，需实测观察影响
   - 后续可集成 G90 GNSS 使用 `run_gnss.launch.py` 启用 GPS 因子优化
   - `autoracer_robot_slam/` 目录可后续加入 Cartographer、SLAM Toolbox 等其他算法
+
+---
+
+## Entry 19: SLAM Toolbox 2D 建图 + Nav2 自主导航集成
+
+- Date: 2026-03-03
+- Agent: Claude Code (claude-opus-4-6)
+- Summary:
+  - 调研 Wheeltec 参考中的 2D SLAM/导航方案：SLAM Toolbox、GMapping、Cartographer 2D、Nav2 导航栈
+  - 用户选择 SLAM Toolbox 方案（现代图优化 SLAM，Ceres 求解器，支持 loop closure）
+  - 通过 apt 安装系统包：`ros-humble-slam-toolbox`, `ros-humble-navigation2`, `ros-humble-nav2-bringup`, `ros-humble-pointcloud-to-laserscan`
+  - 创建 `autoracer_slam_toolbox` 配置包（config + launch），集成 pointcloud_to_laserscan（`/point_cloud_raw` → `/scan`，高度 0.1-1.5m）
+  - 创建 `autoracer_robot_nav2` 导航配置包，适配 Ackermann 运动学：
+    - MPPI 控制器（`motion_model: Ackermann`, `min_turning_r: 1.45m`）
+    - SmacPlannerHybrid（`REEDS_SHEPP`, `minimum_turning_radius: 1.45m`）
+    - AMCL 定位，车身轮廓 `footprint: [[-0.16,-0.25],[-0.16,0.25],[0.69,0.25],[0.69,-0.25]]`
+    - 局部代价地图 3m×3m，全局代价地图含 static/obstacle/inflation 层
+  - 创建 `save_map.launch.py` 地图保存工具
+  - 编译通过（3.10s），launch 参数验证正确
+- Modified/Created files:
+  - `src/autoracer_robot_slam/autoracer_slam_toolbox/`: SLAM Toolbox 配置包
+    - `package.xml`, `CMakeLists.txt`: 包定义
+    - `config/mapper_params_online_sync.yaml`: SLAM 参数（分辨率 0.05m，loop closure 启用）
+    - `launch/slam.launch.py`: pointcloud_to_laserscan + slam_toolbox + RViz2
+    - `README.md`: 使用说明
+  - `src/autoracer_robot_nav2/`: Nav2 导航配置包
+    - `package.xml`, `CMakeLists.txt`: 包定义
+    - `param/autoracer_nav2_params.yaml`: Nav2 参数（MPPI Ackermann + SmacPlannerHybrid）
+    - `launch/navigation.launch.py`: pointcloud_to_laserscan + Nav2 bringup
+    - `launch/save_map.launch.py`: 地图保存
+    - `rviz/nav2.rviz`: Nav2 RViz 配置
+    - `map/`: 地图存储目录
+    - `README.md`: 使用说明
+  - `PJINFO.md`: 更新 ROS2 packages、启动方式、已完成状态、待办列表、重要命令
+  - `CLAUDE.md`: 更新 Project Structure、ROS2 Topics、Run Commands、Development Status
+- How to run:
+  - 建图流程：
+    - 终端 1: `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+    - 终端 2: `ros2 launch lslidar_driver lslidar_cx_launch.py`
+    - 终端 3: `ros2 launch autoracer_slam_toolbox slam.launch.py`
+    - 终端 4: `ros2 run autoracer_keyboard keyboard_control`（遥控建图）
+    - 建图完成: `ros2 launch autoracer_robot_nav2 save_map.launch.py`
+  - 导航流程：
+    - 终端 1: `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+    - 终端 2: `ros2 launch lslidar_driver lslidar_cx_launch.py`
+    - 终端 3: `ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/autoracer_map.yaml`
+    - 在 RViz2 中设置初始位姿 (2D Pose Estimate) 和目标点 (2D Goal Pose)
+- Notes / Next:
+  - 当前使用 `odom` 作为里程计坐标系，EKF 启用后改为 `odom_combined`
+  - 需实车测试建图效果，调整 pointcloud_to_laserscan 高度范围和 SLAM 参数
+  - Nav2 导航需先有保存的地图才能使用 AMCL 定位模式
+  - MPPI 控制器速度参数（vx_max=0.5, vx_min=-0.35）可能需要根据实车表现调整
+  - 可后续添加 behavior_server（spin, backup 等恢复行为）
+  - 下一步建议：实车测试 → 参数调优 → G90 GNSS 集成 → 航点导航
+
+---
+
+## Entry 20: GMapping 2D SLAM 集成
+
+- Date: 2026-03-06
+- Agent: Claude Code (claude-opus-4-6)
+- Summary:
+  - 研究 Wheeltec 参考中的 GMapping 实现：`openslam_gmapping`（核心 C++ 库）+ `slam_gmapping`（ROS2 wrapper）
+  - 复制两个包到 `src/autoracer_robot_slam/`，包名无 "wheeltec" 字样故保持原名
+  - 修复 `slam_gmapping/CMakeLists.txt`：移除 `-fuse-ld=lld` 链接器依赖（Jetson 上无 lld）和调试 message 输出
+  - 修改 `slam_gmapping.cpp` 默认 `odom_frame_`：`odom_combined` → `odom`（适配 AutoRacer 当前 TF 树）
+  - 重写 `slam_gmapping.launch.py`：与 autoracer_slam_toolbox 模式一致，包含 pointcloud_to_laserscan（C32 `/point_cloud_raw` → `/scan`）+ slam_gmapping 节点 + 可选 RViz2，不含 bringup/传感器驱动
+  - 编译通过（openslam_gmapping 10.5s + slam_gmapping 30.5s），仅有 warnings（deprecated header、indentation）
+  - 创建 README.md 说明文档
+- Modified/Created files:
+  - `src/autoracer_robot_slam/openslam_gmapping/`: 从 reference 复制的 GMapping 核心算法库
+  - `src/autoracer_robot_slam/slam_gmapping/`: 从 reference 复制的 GMapping ROS2 wrapper
+  - `src/autoracer_robot_slam/slam_gmapping/CMakeLists.txt`: 移除 lld 链接器依赖
+  - `src/autoracer_robot_slam/slam_gmapping/src/slam_gmapping.cpp`: odom_frame_ 改为 "odom"
+  - `src/autoracer_robot_slam/slam_gmapping/launch/slam_gmapping.launch.py`: 重写为 autoracer 模式
+  - `src/autoracer_robot_slam/slam_gmapping/README.md`: 新增使用说明
+  - `PJINFO.md`: 更新项目结构、ROS2 packages、启动方式、已完成状态、重要命令
+  - `CLAUDE.md`: 更新 Project Structure、Package Dependencies、Run Commands、Development Status
+  - `TODO.md`: 标记 GMapping 为已完成
+- How to run:
+  - `ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
+  - `ros2 launch slam_gmapping slam_gmapping.launch.py use_rviz:=false`
+  - 完整测试流程：
+    - 终端 1: `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+    - 终端 2: `ros2 launch lslidar_driver lslidar_cx_launch.py`
+    - 终端 3: `ros2 launch slam_gmapping slam_gmapping.launch.py`
+    - 终端 4: `ros2 run autoracer_keyboard keyboard_control`（遥控建图）
+    - 建图完成: `ros2 launch autoracer_robot_nav2 save_map.launch.py`
+- Notes / Next:
+  - GMapping 参数（粒子数 30、地图分辨率 0.05m 等）全部硬编码在 slam_gmapping.cpp 中，未通过 ROS 参数暴露
+  - 如需调参需修改源码重编译，后续可考虑添加 declare_parameter 支持
+  - GMapping vs SLAM Toolbox：GMapping 基于粒子滤波（RBPF），SLAM Toolbox 基于图优化（Ceres），后者通常更稳健
+  - 下一步建议：实车对比测试 GMapping 与 SLAM Toolbox 建图效果

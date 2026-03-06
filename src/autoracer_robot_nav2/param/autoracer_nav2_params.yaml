@@ -1,0 +1,374 @@
+# Nav2 导航参数 - AutoRacer Ackermann 转向专用配置
+# 参考: wheeltec_robot_nav2/param/wheeltec_params/param_top_akm_bs.yaml
+# AutoRacer 参数: 轴距 0.54m, 轮距 0.48m, 最小转弯半径 ~1.45m
+# 车身尺寸: 0.85m × 0.50m, base_link 在后轴中心
+
+# === AMCL 自适应蒙特卡洛定位 ===
+amcl:
+  ros__parameters:
+    use_sim_time: False
+    alpha1: 0.4           # 旋转中的旋转噪声
+    alpha2: 0.2           # 旋转中的平移噪声
+    alpha3: 0.2           # 平移中的平移噪声
+    alpha4: 0.4           # 平移中的旋转噪声
+    alpha5: 0.2           # 全向运动噪声
+    base_frame_id: "base_footprint"
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 20.0       # C32 有效范围
+    laser_min_range: 0.2
+    laser_model_type: "likelihood_field"
+    max_beams: 60
+    max_particles: 2000
+    min_particles: 500
+    odom_frame_id: "odom"       # EKF 启用时改为 odom_combined
+    pf_err: 0.05
+    pf_z: 0.99
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    resample_interval: 1
+    robot_model_type: "nav2_amcl::DifferentialMotionModel"
+    save_pose_rate: 0.5
+    sigma_hit: 0.2
+    tf_broadcast: true
+    transform_tolerance: 1.0
+    update_min_a: 0.2           # 旋转更新阈值（弧度）
+    update_min_d: 0.25          # 平移更新阈值（米）
+    z_hit: 0.5
+    z_max: 0.05
+    z_rand: 0.5
+    z_short: 0.05
+    scan_topic: scan
+    map_topic: map
+    first_map_only: False
+    set_initial_pose: True
+    initial_pose.x: 0.0
+    initial_pose.y: 0.0
+    initial_pose.z: 0.0
+    initial_pose.yaw: 0.0
+
+amcl_map_client:
+  ros__parameters:
+    use_sim_time: False
+
+amcl_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# === 行为树导航器 ===
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    transform_tolerance: 0.1
+    goal_reached_tol: 0.25      # 目标到达容差（米）
+    global_frame: map
+    robot_base_frame: base_footprint
+    odom_topic: /odom            # EKF 启用时改为 /odom_combined
+    bt_loop_duration: 10
+    default_server_timeout: 20
+    error_code_names:
+    - compute_path_error_code
+    - follow_path_error_code
+
+bt_navigator_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# === 控制器服务器 (MPPI Ackermann 运动模型) ===
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 20.0
+    odom_topic: /odom            # EKF 启用时改为 /odom_combined
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["goal_checker"]
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.5
+      movement_time_allowance: 10.0
+
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+      stateful: True
+
+    # MPPI 控制器 - Ackermann 运动模型
+    FollowPath:
+      plugin: "nav2_mppi_controller::MPPIController"
+      time_steps: 56
+      model_dt: 0.05              # 预测范围 = 56 × 0.05 = 2.8 秒
+      batch_size: 2000            # 候选轨迹数
+      vx_std: 0.2
+      vy_std: 0.0                 # Ackermann 无横向运动
+      wz_std: 0.4
+      vx_max: 0.5                 # 最大前进速度（米/秒）
+      vx_min: -0.35               # 最大倒退速度
+      vy_max: 0.0                 # Ackermann 无横向速度
+      wz_max: 2.0                 # 最大旋转速度
+      ax_max: 1.5
+      ax_min: -1.5
+      ay_max: 0.0
+      az_max: 1.5
+      iteration_count: 1
+      prune_distance: 1.5
+      enforce_path_inversion: true
+      transform_tolerance: 0.1
+      temperature: 0.3
+      gamma: 0.015
+      motion_model: "Ackermann"   # Ackermann 运动模型
+      visualize: false
+      TrajectoryVisualizer:
+        trajectory_step: 5
+        time_step: 3
+
+      # Ackermann 转弯约束
+      AckermannConstraints:
+        min_turning_r: 1.45       # 最小转弯半径（米），由轴距和最大转向角计算
+
+      # MPPI 评价函数
+      critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"]
+
+      ConstraintCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+
+      GoalAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 3.0
+        threshold_to_consider: 0.5
+
+      GoalCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 15.0
+        threshold_to_consider: 1.4
+
+      ObstaclesCritic:
+        enabled: true
+        cost_power: 1
+        repulsion_weight: 1.5
+        critical_weight: 30.0
+        consider_footprint: false
+        collision_cost: 10000.0
+        collision_margin_distance: 0.1
+        near_goal_distance: 0.4
+        cost_scaling_factor: 5.0
+        inflation_radius: 0.15
+
+      PreferForwardCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 1.5
+        threshold_to_consider: 0.5
+
+      PathAlignCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 25.0
+        max_path_occupancy_ratio: 0.07
+        trajectory_point_step: 4
+        threshold_to_consider: 0.5
+        offset_from_furthest: 20
+        use_path_orientations: true
+
+      PathAngleCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 4.0
+        offset_from_furthest: 4
+        threshold_to_consider: 0.5
+        max_angle_to_furthest: 1.0
+        mode: 2
+
+      PathFollowCritic:
+        enabled: true
+        cost_power: 1
+        cost_weight: 25.0
+        offset_from_furthest: 5
+        threshold_to_consider: 1.4
+
+controller_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# === 局部代价地图 (3m × 3m 滚动窗口) ===
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: map
+      robot_base_frame: base_footprint
+      use_sim_time: False
+      rolling_window: true
+      width: 3
+      height: 3
+      resolution: 0.05
+      # AutoRacer 车身轮廓 (base_link 在后轴中心)
+      # 后端: -0.16m, 前端: +0.69m, 半宽: ±0.25m
+      footprint: "[ [-0.16, -0.25], [-0.16, 0.25], [0.69, 0.25], [0.69, -0.25] ]"
+      plugins: ["voxel_layer", "inflation_layer"]
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.55    # 膨胀半径（米）
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: True
+        publish_voxel_map: True
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 2.0
+        mark_threshold: 0
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 3.0
+          obstacle_min_range: 0.0
+      always_send_full_costmap: True
+  local_costmap_client:
+    ros__parameters:
+      use_sim_time: False
+  local_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: False
+
+# === 全局代价地图 ===
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 1.0
+      publish_frequency: 1.0
+      global_frame: map
+      robot_base_frame: base_footprint
+      use_sim_time: False
+      footprint: "[ [-0.16, -0.25], [-0.16, 0.25], [0.69, 0.25], [0.69, -0.25] ]"
+      resolution: 0.05
+      track_unknown_space: true
+      plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: scan
+        scan:
+          topic: /scan
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "LaserScan"
+          raytrace_max_range: 10.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        cost_scaling_factor: 10.0
+        inflation_radius: 0.25
+      always_send_full_costmap: True
+  global_costmap_client:
+    ros__parameters:
+      use_sim_time: False
+  global_costmap_rclcpp_node:
+    ros__parameters:
+      use_sim_time: False
+
+# === 地图服务器 ===
+map_server:
+  ros__parameters:
+    use_sim_time: False
+    yaml_filename: ""
+
+# === 地图保存 ===
+map_saver:
+  ros__parameters:
+    use_sim_time: False
+    save_map_timeout: 5.0
+    free_thresh_default: 0.196
+    occupied_thresh_default: 0.65
+    map_subscribe_transient_local: True
+
+# === 路径规划器 (Hybrid A* with Reeds-Shepp) ===
+planner_server:
+  ros__parameters:
+    planner_plugins: ["GridBased"]
+    use_sim_time: False
+    expected_planner_frequency: 2.0
+
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlannerHybrid"
+      tolerance: 0.5                          # 目标容差（米）
+      downsample_costmap: false
+      downsampling_factor: 1
+      allow_unknown: false
+      max_iterations: 1000000
+      max_on_approach_iterations: 1000
+      max_planning_time: 5.0                  # 最大规划时间（秒）
+      motion_model_for_search: "REEDS_SHEPP"  # Ackermann 适用
+      cost_travel_multiplier: 2.0
+      angle_quantization_bins: 72             # 5° 角度分辨率
+      analytic_expansion_ratio: 3.5
+      analytic_expansion_max_cost: 200.0
+      minimum_turning_radius: 1.45            # AutoRacer 最小转弯半径（米）
+      reverse_penalty: 1.5                    # 倒退惩罚
+      change_penalty: 0.0                     # 方向切换惩罚
+      non_straight_penalty: 1.20              # 非直线惩罚
+      cost_penalty: 2.0                       # 高代价区域惩罚
+      lookup_table_size: 20.0
+      cache_obstacle_heuristic: True
+      smooth_path: true
+      smoother:
+        max_iterations: 1000
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1.0e-10
+
+planner_server_rclcpp_node:
+  ros__parameters:
+    use_sim_time: False
+
+# === 路径平滑器 ===
+smoother_server:
+  ros__parameters:
+    use_sim_time: false
+    smoother_plugins: ["simple_smoother"]
+    simple_smoother:
+      plugin: "nav2_smoother::SimpleSmoother"
+      tolerance: 1.0e-10
+      max_its: 1000
+      do_refinement: True
+
+# === 状态发布器 ===
+robot_state_publisher:
+  ros__parameters:
+    use_sim_time: False
+
+# === 航点跟随 ===
+waypoint_follower:
+  ros__parameters:
+    loop_rate: 20
+    stop_on_failure: false
+    waypoint_task_executor_plugin: "wait_at_waypoint"
+    wait_at_waypoint:
+      plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+      enabled: True
+      waypoint_pause_duration: 200    # 到达航点后等待时间（毫秒）

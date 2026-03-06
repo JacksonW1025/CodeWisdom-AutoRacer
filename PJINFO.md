@@ -123,6 +123,10 @@
   - `hipnuc_imu`：**N300 Pro IMU 驱动** | nodes: `talker`(IMU_publisher), `listener` | launch: `imu_spec_msg.launch.py` | 接口: pub `/imu/data_raw`(sensor_msgs/Imu)
   - `autoracer_robot_urdf`：**URDF 机器人模型** | nodes: 无（资源包） | launch: `robot_description.launch.py` | 内容: Ackermann 底盘 Xacro URDF（4轮 + 2传感器 link）
   - `lio_sam`(autoracer_robot_slam/LIO-SAM-ROS2)：**LIO-SAM 3D SLAM** | nodes: `lio_sam_imageProjection`, `lio_sam_featureExtraction`, `lio_sam_imuPreintegration`, `lio_sam_mapOptimization`, `lio_sam_simpleGpsOdom` | launch: `autoracer_run.launch.py` | 接口: sub `/point_cloud_raw`(PointCloud2), `/imu/data_raw`(Imu), pub `/lio_sam/mapping/odometry`(Odometry), `/lio_sam/mapping/map_global`(PointCloud2) | 依赖: GTSAM 4.2.0
+  - `autoracer_slam_toolbox`(autoracer_robot_slam/autoracer_slam_toolbox)：**SLAM Toolbox 2D 建图** | nodes: 无（使用系统 slam_toolbox） | launch: `slam.launch.py` | 接口: sub `/scan`(LaserScan), `/odom`(Odometry), pub `/map`(OccupancyGrid) | 依赖: slam_toolbox, pointcloud_to_laserscan（系统包）
+  - `openslam_gmapping`(autoracer_robot_slam/openslam_gmapping)：**GMapping 核心算法库** | nodes: 无（C++ 库） | launch: 无 | 接口: 无（被 slam_gmapping 链接使用）
+  - `slam_gmapping`(autoracer_robot_slam/slam_gmapping)：**GMapping 2D SLAM** | nodes: `slam_gmapping`（粒子滤波 RBPF + 扫描匹配） | launch: `slam_gmapping.launch.py` | 接口: sub `/scan`(LaserScan), pub `/map`(OccupancyGrid), `/map_metadata`(MapMetaData), `/entropy`(Float64), TF: `map`→`odom` | 依赖: openslam_gmapping, pointcloud_to_laserscan（系统包）
+  - `autoracer_robot_nav2`：**Nav2 自主导航** | nodes: 无（使用系统 navigation2） | launch: `navigation.launch.py`, `save_map.launch.py` | 接口: sub `/scan`(LaserScan), `/odom`(Odometry), pub `/cmd_vel`(Twist) | 配置: MPPI Ackermann 控制器, SmacPlannerHybrid (Reeds-Shepp), AMCL 定位 | 依赖: navigation2, nav2_bringup, pointcloud_to_laserscan（系统包）
 - 现聚焦的关键入口与运行链路：
   - 启动方式：
     - 完整启动（含TF）：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
@@ -134,6 +138,11 @@
     - **ZED X + RViz2 可视化**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx`
     - **仅 RViz2（不启动相机）**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx start_zed_node:=False`
     - **LIO-SAM 3D SLAM**：`ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
+    - **SLAM Toolbox 2D 建图**：`ros2 launch autoracer_slam_toolbox slam.launch.py`（需先启动底盘+LiDAR）
+    - **GMapping 2D SLAM**：`ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
+    - **Nav2 导航（加载地图）**：`ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/map.yaml`（需先启动底盘+LiDAR）
+    - **Nav2 导航（SLAM 模式）**：`ros2 launch autoracer_robot_nav2 navigation.launch.py slam:=True`（需先启动底盘+LiDAR）
+    - **保存地图**：`ros2 launch autoracer_robot_nav2 save_map.launch.py`
   - 配置入口：
     - `src/turn_on_autoracer_robot/config/autoracer_params.yaml`（串口、坐标系、里程计校准参数）
     - `src/autoracer_lidar_ros2/lslidar_ros/lslidar_driver/params/lslidar_cx.yaml`（LiDAR IP、端口、点云参数）
@@ -281,11 +290,28 @@
       - 修正后静止 Z 漂移从 0.75m 降至 0.27m
     - 已知问题：室内杂乱环境面特征不足（~90-100，阈值 100），需到结构化环境测试
     - 详细问题清单见 `src/autoracer_robot_slam/LIO-SAM-ROS2/TODO.md`
+  - **SLAM Toolbox 2D 建图集成完成**（2026-03-03）：
+    - 安装系统包 `ros-humble-slam-toolbox`, `ros-humble-pointcloud-to-laserscan`, `ros-humble-navigation2`
+    - 创建 `autoracer_slam_toolbox` 配置包：Ceres 求解器，loop closure，分辨率 0.05m
+    - 集成 `pointcloud_to_laserscan`：C32 `/point_cloud_raw` → `/scan`（高度范围 0.1-1.5m）
+    - 验证方式：`ros2 launch autoracer_slam_toolbox slam.launch.py`（需先启动底盘+LiDAR）
+  - **Nav2 自主导航集成完成**（2026-03-03）：
+    - 创建 `autoracer_robot_nav2` 配置包，适配 Ackermann 运动学
+    - MPPI 控制器 (Ackermann motion_model, min_turning_r=1.45m)
+    - SmacPlannerHybrid 路径规划 (Reeds-Shepp, minimum_turning_radius=1.45m)
+    - AMCL 定位，车身轮廓 footprint [[-0.16,-0.25],[-0.16,0.25],[0.69,0.25],[0.69,-0.25]]
+    - 验证方式：`ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/map.yaml`
+  - **GMapping 2D SLAM 集成完成**（2026-03-06）：
+    - 从 `reference/wheeltec_ros2/src/wheeltec_robot_slam/` 复制 `openslam_gmapping`（核心算法库）+ `slam_gmapping`（ROS2 wrapper）
+    - 修复 CMakeLists.txt（移除 lld 链接器依赖）
+    - 修改 odom_frame 默认值：`odom_combined` → `odom`（适配 AutoRacer 当前 TF 树）
+    - 重写 launch 文件：集成 pointcloud_to_laserscan + slam_gmapping + 可选 RViz2
+    - 验证方式：`ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
   - 【P0 核心基础】~~静态 TF 配置（LiDAR/ZED X）~~ ✅、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、~~URDF 模型~~ ✅、Ackermann 消息、~~RViz 配置~~ ✅
-  - 【P1 导航基础】pointcloud_to_laserscan、Nav2 配置、航点导航、路径跟随
-  - 【P2 SLAM】Cartographer、SLAM Toolbox、GMapping、RTAB-Map、ORB-SLAM2、LeGO-LOAM、~~LIO-SAM~~ ✅
+  - 【P1 导航基础】~~pointcloud_to_laserscan~~ ✅、~~Nav2 配置~~ ✅、航点导航、路径跟随
+  - 【P2 SLAM】Cartographer、~~SLAM Toolbox~~ ✅、~~GMapping~~ ✅、RTAB-Map、ORB-SLAM2、LeGO-LOAM、~~LIO-SAM~~ ✅
   - 【P3 传感器】超声波避障、USB 摄像头、手柄控制、麦克风
   - 【P4 视觉/AI】目标跟随、KCF 跟踪、YOLO 检测、ArUco 标记、人体姿态、LLM 集成
   - 【P5 工具】Web 视频流、TTS 语音、RRT 规划、Qt GUI、多机器人、自动充电
@@ -295,7 +321,7 @@
   - IMU校准参数未设置（需实际标定）
 
 ## 重要命令（【只增不删】）
-- REALLY IMPORTANT: source source_all.sh用于source ros2和autoracer workspace
+- REALLY IMPORTANT: source source_all.sh用于source ros2和autoracer workspace: If you wanna launch any node in any pkg, run source source_all.sh first to source the env.
 - LiDAR 连接测试：`ping 192.168.1.200`（镭神 C32，数据端口 2368/UDP）
 - build：
   - 完整构建：`colcon build --symlink-install`
@@ -328,6 +354,16 @@
   - **LIO-SAM 3D SLAM**：`ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
   - **LIO-SAM 保存地图**：`ros2 service call /lio_sam/save_map lio_sam/srv/SaveMap "{resolution: 0.2, destination: ''}"`
   - **LIO-SAM 编译**：`colcon build --packages-select lio_sam --symlink-install --parallel-workers 2`
+  - **SLAM Toolbox 2D 建图**：`ros2 launch autoracer_slam_toolbox slam.launch.py`（需先启动底盘+LiDAR）
+  - **SLAM Toolbox 不带 RViz**：`ros2 launch autoracer_slam_toolbox slam.launch.py use_rviz:=false`
+  - **GMapping 2D SLAM**：`ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
+  - **GMapping 不带 RViz**：`ros2 launch slam_gmapping slam_gmapping.launch.py use_rviz:=false`
+  - **编译 GMapping**：`colcon build --packages-select openslam_gmapping slam_gmapping --symlink-install --parallel-workers 2`
+  - **Nav2 导航（加载地图）**：`ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/map.yaml`（需先启动底盘+LiDAR）
+  - **Nav2 导航（SLAM 模式）**：`ros2 launch autoracer_robot_nav2 navigation.launch.py slam:=True`
+  - **保存地图**：`ros2 launch autoracer_robot_nav2 save_map.launch.py`
+  - **保存地图（自定义名称）**：`ros2 launch autoracer_robot_nav2 save_map.launch.py map_name:=my_map`
+  - **编译 SLAM/Nav2 包**：`colcon build --packages-select autoracer_slam_toolbox autoracer_robot_nav2 --symlink-install`
 
 ## 主要命令（【参考】CLAUDE.md）
 - 关键入口：
