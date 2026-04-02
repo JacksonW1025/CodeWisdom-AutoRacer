@@ -33,6 +33,7 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # Get package directories
     autoracer_pkg = get_package_share_directory('turn_on_autoracer_robot')
+    robot_config = Path(autoracer_pkg, 'config', 'autoracer_params.yaml')
 
     # Declare launch arguments
     usart_port_arg = DeclareLaunchArgument(
@@ -59,6 +60,12 @@ def generate_launch_description():
         description='Odometry frame ID'
     )
 
+    gyro_frame_arg = DeclareLaunchArgument(
+        'gyro_frame_id',
+        default_value='gyro_link',
+        description='Gyroscope frame ID'
+    )
+
     # 是否使用 N300 Pro IMU (默认 true，替代 STM32 板载 MPU6050)
     use_n300pro_imu_arg = DeclareLaunchArgument(
         'use_n300pro_imu',
@@ -75,8 +82,24 @@ def generate_launch_description():
     )
     use_urdf = LaunchConfiguration('use_urdf')
 
+    use_ekf_arg = DeclareLaunchArgument(
+        'use_ekf',
+        default_value='true',
+        description='Start robot_localization EKF in the default bringup'
+    )
+    use_ekf = LaunchConfiguration('use_ekf')
+
     # IMU config for Madgwick filter
     imu_config = Path(autoracer_pkg, 'config', 'imu.yaml')
+    ekf_launch_file = os.path.join(autoracer_pkg, 'launch', 'autoracer_ekf.launch.py')
+    robot_parameters = [robot_config] if robot_config.exists() else []
+    robot_parameters.append({
+        'usart_port_name': LaunchConfiguration('usart_port_name'),
+        'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
+        'robot_frame_id': LaunchConfiguration('robot_frame_id'),
+        'odom_frame_id': LaunchConfiguration('odom_frame_id'),
+        'gyro_frame_id': LaunchConfiguration('gyro_frame_id'),
+    })
 
     # ========== 使用 N300 Pro IMU 时 ==========
     # STM32 node with IMU topic remapping (板载 IMU 重映射走)
@@ -86,12 +109,7 @@ def generate_launch_description():
         executable='autoracer_robot',
         name='autoracer_robot',
         output='screen',
-        parameters=[{
-            'usart_port_name': LaunchConfiguration('usart_port_name'),
-            'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
-            'robot_frame_id': LaunchConfiguration('robot_frame_id'),
-            'odom_frame_id': LaunchConfiguration('odom_frame_id'),
-        }],
+        parameters=robot_parameters,
         # 关键: 将 STM32 的 /imu/data_raw 重映射到 /imu/data_board
         # 这样 N300 Pro 的 hipnuc_imu 可以发布到 /imu/data_raw
         remappings=[('imu/data_raw', 'imu/data_board')]
@@ -129,12 +147,24 @@ def generate_launch_description():
         executable='autoracer_robot',
         name='autoracer_robot',
         output='screen',
-        parameters=[{
-            'usart_port_name': LaunchConfiguration('usart_port_name'),
-            'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
-            'robot_frame_id': LaunchConfiguration('robot_frame_id'),
-            'odom_frame_id': LaunchConfiguration('odom_frame_id'),
-        }]
+        parameters=robot_parameters
+    )
+
+    ekf_with_n300pro = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(ekf_launch_file),
+        condition=IfCondition(use_n300pro_imu),
+        launch_arguments={'imu_topic': '/imu/data'}.items(),
+    )
+
+    ekf_without_n300pro = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(ekf_launch_file),
+        condition=UnlessCondition(use_n300pro_imu),
+        launch_arguments={'imu_topic': '/imu/data_raw'}.items(),
+    )
+
+    ekf_group = GroupAction(
+        condition=IfCondition(use_ekf),
+        actions=[ekf_with_n300pro, ekf_without_n300pro],
     )
 
     # ========== URDF 模型 (robot_state_publisher + joint_state_publisher) ==========
@@ -208,14 +238,17 @@ def generate_launch_description():
         baud_rate_arg,
         robot_frame_arg,
         odom_frame_arg,
+        gyro_frame_arg,
         use_n300pro_imu_arg,
         use_urdf_arg,
+        use_ekf_arg,
         # Robot nodes (conditional)
         autoracer_robot_with_n300pro,
         autoracer_robot_without_n300pro,
         # N300 Pro IMU (conditional)
         hipnuc_imu_launch,
         imu_filter_node,
+        ekf_group,
         # URDF model (conditional)
         robot_state_publisher,
         joint_state_publisher,

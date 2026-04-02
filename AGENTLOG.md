@@ -1063,3 +1063,124 @@ STM32 (MPU6050)                 N300 Pro (HI13)
   - 如需调参需修改源码重编译，后续可考虑添加 declare_parameter 支持
   - GMapping vs SLAM Toolbox：GMapping 基于粒子滤波（RBPF），SLAM Toolbox 基于图优化（Ceres），后者通常更稳健
   - 下一步建议：实车对比测试 GMapping 与 SLAM Toolbox 建图效果
+
+---
+
+## Entry 21: IMU 姿态专用 RViz 可视化视图
+
+- Date: 2026-04-01
+- Agent: Codex (GPT-5)
+- Summary:
+  - 按用户要求实现“仅供 RViz 使用”的 IMU 姿态可视化链路，明确不改共享 TF，不改现有 SLAM/Nav2/LIO-SAM 实现
+  - 参考 `reference/WHEELTEC_N300Pro/N300Pro_ros2_sdk/imu_tf_broadcaster` 的做法，新建 `autoracer_imu_tf_broadcaster` ament_python 包
+  - 新节点订阅 `/imu/data_raw`，发布动态 TF `viz_world -> viz_base_link`，平移固定 `(0, 0, 0.11)`，旋转直接使用 IMU 原始四元数
+  - 为避免污染现有 `base_link` / `base_footprint` 语义，对 `autoracer.urdf.xacro` 增加 `prefix` 参数，生成 `viz_*` 前缀的可视化专用 URDF 子树
+  - 在 `autoracer_robot_urdf` 中新增 `imu_attitude_viz.launch.py`，启动前缀版 `robot_state_publisher`、隔离的 `viz_joint_states`、IMU TF 广播节点和专用 RViz
+  - 新增 `imu_attitude.rviz`，仅显示 Grid + RobotModel + TF，Fixed Frame 为 `viz_world`，默认斜视 Orbit，专门用于观察车身姿态变化
+  - 删除上一轮临时验证产物 `tools/imu_tf_bridge.py` 和 `src/autoracer_robot_urdf/rviz/sensor_check.rviz`，避免和正式方案并存
+- Modified/Created files:
+  - `src/autoracer_imu_tf_broadcaster/`: 新增可视化专用 IMU TF 广播包
+  - `src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro`: 增加 `prefix` 参数，支持生成 `viz_*` 前缀模型
+  - `src/autoracer_robot_urdf/launch/imu_attitude_viz.launch.py`: 新增专用 launch
+  - `src/autoracer_robot_urdf/rviz/imu_attitude.rviz`: 新增专用 RViz 配置
+  - `src/autoracer_robot_urdf/package.xml`: 补充 launch/runtime 依赖
+  - `PJINFO.md`: 更新包清单、当前状态、运行命令
+  - `AGENTLOG.md`: 新增本条日志
+- How to run:
+  - 终端 1: `source /home/car/CodeWisdom-AutoRacer/source_all.sh`
+  - 终端 1: `ros2 launch hipnuc_imu imu_spec_msg.launch.py`
+  - 终端 2: `source /home/car/CodeWisdom-AutoRacer/source_all.sh`
+  - 终端 2: `ros2 launch autoracer_robot_urdf imu_attitude_viz.launch.py`
+  - 可选验证:
+    - `ros2 run tf2_ros tf2_echo viz_world viz_base_link`
+    - 手动摆动 IMU，观察 RViz 中 `viz_*` 前缀车模姿态同步变化
+- Validation:
+  - 新链路只发布 `viz_*` 前缀帧，不覆盖现有业务 TF
+  - `autoracer.rviz`、`nav2.rviz`、`slam.rviz`、LIO-SAM RViz 配置保持不变
+  - 主建图/导航相关 launch 和算法节点未修改
+- Notes / Next:
+  - 该功能定位为“姿态观察 / 联调视图”，不承担点云、地图或导航工作流可视化
+  - 如后续需要“点云也一起跟随可视化姿态”效果，应继续走单独的 `viz_*` 可视化链路，而不是修改共享 TF
+
+---
+
+## Entry 22: Stage Review 问题修复与文档对齐
+
+- Date: 2026-04-02
+- Agent: Codex (GPT-5)
+
+### Summary
+- 修复 `turn_on_autoracer_robot` 默认 bringup，接入 `autoracer_ekf.launch.py`，闭合 `/imu/data_raw -> /imu/data -> /odom_combined` 默认融合链路
+- 修正 Madgwick 参数文件节点名，使 `config/imu.yaml` 能命中实际节点 `imu_filter_madgwick`
+- 调整 `config/ekf.yaml` 默认 IMU 输入为 `/imu/data`
+- 让 `autoracer_params.yaml` 成为真实参数入口，并收敛到 `autoracer_robot` 当前实际消费的串口 / frame 参数
+- 将 `autoracer_slam_toolbox` 与 `slam_gmapping` 默认 RViz 配置切换为 `slam.rviz`
+- 删除 `lio_sam` 中仍依赖 Wheeltec 的失效旧 launch，并更新包内 README / launch_readme / TODO
+- 更新 `PJINFO.md` 与根 `README.md`，使文档与当前真实状态一致
+
+### Modified/Created files
+- `src/turn_on_autoracer_robot/config/autoracer_params.yaml`
+- `src/turn_on_autoracer_robot/config/imu.yaml`
+- `src/turn_on_autoracer_robot/config/ekf.yaml`
+- `src/turn_on_autoracer_robot/launch/autoracer_serial.launch.py`
+- `src/turn_on_autoracer_robot/launch/autoracer_ekf.launch.py`
+- `src/turn_on_autoracer_robot/launch/turn_on_autoracer_robot.launch.py`
+- `src/autoracer_robot_slam/autoracer_slam_toolbox/launch/slam.launch.py`
+- `src/autoracer_robot_slam/slam_gmapping/launch/slam_gmapping.launch.py`
+- `src/autoracer_robot_slam/LIO-SAM-ROS2/README.md`
+- `src/autoracer_robot_slam/LIO-SAM-ROS2/launch_readme.txt`
+- `src/autoracer_robot_slam/LIO-SAM-ROS2/TODO.md`
+- `README.md`
+- `PJINFO.md`
+- `AGENTLOG.md`
+- 删除 `lio_sam` 中旧 Wheeltec 入口 launch 文件
+
+### Validation
+- `python3 -m py_compile` 校验修改过的 Python launch 文件
+- `xacro src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro >/tmp/autoracer.urdf`
+- `colcon build --packages-select turn_on_autoracer_robot lio_sam autoracer_slam_toolbox slam_gmapping autoracer_robot_urdf --symlink-install`
+- 无串口依赖的 launch 校验：
+  - `ros2 launch autoracer_slam_toolbox slam.launch.py include_bringup:=false use_rviz:=false`
+  - `ros2 launch slam_gmapping slam_gmapping.launch.py include_bringup:=false use_rviz:=false`
+- `rg` 检查 `lio_sam` 中已无 `turn_on_wheeltec_robot` / `wheeltec_params` 等失效入口引用
+
+### Notes / Limitations
+- 当前 STM32 串口硬件未接入，本轮未进行底盘控制、串口收发、`/odom` 或 `/odom_combined` 的联机实测
+- 本轮验证仅覆盖静态检查、构建与不依赖串口的 launch 校验
+- `lio_sam` 目前只保留 `autoracer_run.launch.py` 作为支持入口；GNSS / offline wrapper 需后续以 AutoRacer 方式重建
+
+---
+
+## Entry 23: `lslidar_driver_node` 段错误定位与修复
+
+- Date: 2026-04-02
+- Agent: Codex (GPT-5)
+
+### Summary
+- 复现并定位 `lslidar_driver_node` 在完整链路下的 `exit code -11`
+- 根因位于 `lslidar_driver.cpp` 的每帧异步发布逻辑：驱动在一帧结束时对共享成员 `point_cloud_*_bak_` 和 `scan_msg_bak` 赋值后，立即 `detach` 两个发布线程
+- 其中 `scan_msg_bak` 是 `sensor_msgs::msg::LaserScan::UniquePtr`，如果下一帧在前一帧发布线程真正执行前再次覆盖该成员，多个 detached 线程会争用同一个 `UniquePtr`
+- 当前一线程先 `publish(std::move(scan_msg_bak))` 后，后一线程会在 `scan_msg_bak->header...` 处解引用空指针，触发段错误
+- 修复方式为移除这两个 detached 发布线程，改为在采包线程内同步发布，并为备份消息增加空指针保护
+
+### Modified/Created files
+- `src/autoracer_lidar_ros2/lslidar_ros/lslidar_driver/src/lslidar_driver.cpp`
+- `AGENTLOG.md`
+
+### Validation
+- `colcon build --packages-select lslidar_driver --symlink-install`
+- 完整链路实机回归：
+  - `ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - `ros2 launch lslidar_driver lslidar_cx_launch.py`
+  - `ros2 launch lio_sam autoracer_run.launch.py`
+- 观察结果：
+  - `lslidar_driver_node` 在 35s 以上窗口内持续存活，未再出现 `exit code -11`
+  - `/point_cloud_raw` 约 `19.6-20.0 Hz`
+  - `/scan_raw` 约 `20.0 Hz`
+  - `/imu/data_raw` 约 `100 Hz`
+  - `/lio_sam/mapping/odometry` 约 `5.5-5.9 Hz`，`ros2 topic echo --once` 可收到有效里程计
+
+### Notes / Limitations
+- 本次修复确认了 LiDAR 驱动崩溃根因，当前完整链路已能持续出点云和 LIO-SAM odometry
+- 室内环境下 `lio_sam_mapOptimization` 仍持续提示 `Not enough features`，属于场景退化而非本次驱动崩溃问题
+- `lio_sam_imuPreintegration` 仍会提示 `Large velocity, reset IMU-preintegration!`，这提示 IMU / 速度先验链路仍需后续单独整定

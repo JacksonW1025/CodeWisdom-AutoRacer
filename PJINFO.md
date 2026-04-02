@@ -110,7 +110,7 @@
   - `PROMPT.md`：用于和Agent交互的文件，内含具体细致的工作规划
   - `TODO.md`：功能对比与待办清单（AutoRacer vs Wheeltec，按 P0-P5 优先级分类，共 34 项待办）
 - ROS2 packages（如适用）：
-  - `turn_on_autoracer_robot`：主底盘驱动包(C++) | nodes: `autoracer_robot` | launch: `autoracer_serial.launch.py`, `turn_on_autoracer_robot.launch.py` | 接口: sub `/cmd_vel`(Twist), pub `/odom`(Odometry), `/imu/data_raw`(Imu), `/PowerVoltage`(Float32)
+  - `turn_on_autoracer_robot`：主底盘驱动包(C++) | nodes: `autoracer_robot` | launch: `autoracer_serial.launch.py`, `autoracer_ekf.launch.py`, `turn_on_autoracer_robot.launch.py` | 接口: sub `/cmd_vel`(Twist), pub `/odom`(Odometry), `/imu/data_raw`(Imu), `/PowerVoltage`(Float32)；默认 bringup 额外启动 Madgwick + EKF，产出 `/imu/data` 与 `/odom_combined`
   - `autoracer_interfaces`：自定义消息服务包 | nodes: 无 | launch: 无 | 接口: msg `Supersonic`(8通道超声波), srv `SetRgb`(RGB LED控制)
   - `autoracer_keyboard`：键盘遥控包(Python) | nodes: `keyboard_control` | launch: 无 | 接口: pub `/cmd_vel`(Twist)
   - `serial`(depend/serial_ros2)：跨平台串口通信库 | nodes: 无（库） | launch: 无 | 接口: C++ API
@@ -121,15 +121,16 @@
   - `zed_ros2`(zed-ros2-wrapper)：ZED ROS2 Meta 包（依赖聚合） | nodes: 无 | launch: 无 | 接口: 无
   - `zed_display_rviz2`：**ZED X RViz2 可视化包** | nodes: 无（启动 rviz2） | launch: `display_zed_cam.launch.py` | 配置: `rviz2/zed_stereo.rviz`, `rviz2/zed_mono.rviz`
   - `hipnuc_imu`：**N300 Pro IMU 驱动** | nodes: `talker`(IMU_publisher), `listener` | launch: `imu_spec_msg.launch.py` | 接口: pub `/imu/data_raw`(sensor_msgs/Imu)
+  - `autoracer_imu_tf_broadcaster`：**IMU 姿态 RViz 可视化专用 TF 广播包** | nodes: `autoracer_imu_tf_broadcaster` | launch: 无（由 `autoracer_robot_urdf` 调用） | 接口: sub `/imu/data_raw`(sensor_msgs/Imu), pub TF `viz_world`→`viz_base_link`
   - `autoracer_robot_urdf`：**URDF 机器人模型** | nodes: 无（资源包） | launch: `robot_description.launch.py` | 内容: Ackermann 底盘 Xacro URDF（4轮 + 2传感器 link）
   - `lio_sam`(autoracer_robot_slam/LIO-SAM-ROS2)：**LIO-SAM 3D SLAM** | nodes: `lio_sam_imageProjection`, `lio_sam_featureExtraction`, `lio_sam_imuPreintegration`, `lio_sam_mapOptimization`, `lio_sam_simpleGpsOdom` | launch: `autoracer_run.launch.py` | 接口: sub `/point_cloud_raw`(PointCloud2), `/imu/data_raw`(Imu), pub `/lio_sam/mapping/odometry`(Odometry), `/lio_sam/mapping/map_global`(PointCloud2) | 依赖: GTSAM 4.2.0
   - `autoracer_slam_toolbox`(autoracer_robot_slam/autoracer_slam_toolbox)：**SLAM Toolbox 2D 建图** | nodes: 无（使用系统 slam_toolbox） | launch: `slam.launch.py` | 接口: sub `/scan`(LaserScan), `/odom`(Odometry), pub `/map`(OccupancyGrid) | 依赖: slam_toolbox, pointcloud_to_laserscan（系统包）
   - `openslam_gmapping`(autoracer_robot_slam/openslam_gmapping)：**GMapping 核心算法库** | nodes: 无（C++ 库） | launch: 无 | 接口: 无（被 slam_gmapping 链接使用）
   - `slam_gmapping`(autoracer_robot_slam/slam_gmapping)：**GMapping 2D SLAM** | nodes: `slam_gmapping`（粒子滤波 RBPF + 扫描匹配） | launch: `slam_gmapping.launch.py` | 接口: sub `/scan`(LaserScan), pub `/map`(OccupancyGrid), `/map_metadata`(MapMetaData), `/entropy`(Float64), TF: `map`→`odom` | 依赖: openslam_gmapping, pointcloud_to_laserscan（系统包）
   - `autoracer_robot_nav2`：**Nav2 自主导航** | nodes: 无（使用系统 navigation2） | launch: `navigation.launch.py`, `save_map.launch.py` | 接口: sub `/scan`(LaserScan), `/odom`(Odometry), pub `/cmd_vel`(Twist) | 配置: MPPI Ackermann 控制器, SmacPlannerHybrid (Reeds-Shepp), AMCL 定位 | 依赖: navigation2, nav2_bringup, pointcloud_to_laserscan（系统包）
-- 现聚焦的关键入口与运行链路：
+  - 现聚焦的关键入口与运行链路：
   - 启动方式：
-    - 完整启动（含TF）：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+    - 完整启动（含TF + 默认 EKF）：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
     - 仅串口节点：`ros2 launch turn_on_autoracer_robot autoracer_serial.launch.py`
     - 键盘控制（另开终端）：`ros2 run autoracer_keyboard keyboard_control`
     - **LiDAR 驱动**：`ros2 launch lslidar_driver lslidar_cx_launch.py`
@@ -137,6 +138,7 @@
     - **ZED X 深度相机**：`ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zedx`
     - **ZED X + RViz2 可视化**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx`
     - **仅 RViz2（不启动相机）**：`ros2 launch zed_display_rviz2 display_zed_cam.launch.py camera_model:=zedx start_zed_node:=False`
+    - **IMU 姿态专用 RViz 可视化**：`ros2 launch autoracer_robot_urdf imu_attitude_viz.launch.py`（需先启动 `hipnuc_imu`）
     - **LIO-SAM 3D SLAM**：`ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
     - **SLAM Toolbox 2D 建图**：`ros2 launch autoracer_slam_toolbox slam.launch.py`（需先启动底盘+LiDAR）
     - **GMapping 2D SLAM**：`ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
@@ -144,7 +146,7 @@
     - **Nav2 导航（SLAM 模式）**：`ros2 launch autoracer_robot_nav2 navigation.launch.py slam:=True`（需先启动底盘+LiDAR）
     - **保存地图**：`ros2 launch autoracer_robot_nav2 save_map.launch.py`
   - 配置入口：
-    - `src/turn_on_autoracer_robot/config/autoracer_params.yaml`（串口、坐标系、里程计校准参数）
+    - `src/turn_on_autoracer_robot/config/autoracer_params.yaml`（`autoracer_robot` 实际消费的串口与 frame 参数）
     - `src/autoracer_lidar_ros2/lslidar_ros/lslidar_driver/params/lslidar_cx.yaml`（LiDAR IP、端口、点云参数）
     - `src/zed-ros2-wrapper/zed_wrapper/config/zedx.yaml`（ZED X 分辨率、帧率、曝光参数）
     - `src/zed-ros2-wrapper/zed_wrapper/config/common_stereo.yaml`（深度、位置追踪、物体检测参数）
@@ -266,6 +268,13 @@
     - `autoracer.rviz` 配置文件：Grid + RobotModel + TF + LaserScan(/scan_raw) + Odometry(/odom)
     - Fixed Frame: base_link，Orbit 视图，Best Effort QoS for LaserScan
     - 验证方式: `rviz2 -d $(ros2 pkg prefix autoracer_robot_urdf)/share/autoracer_robot_urdf/rviz/autoracer.rviz`
+  - **IMU 姿态专用 RViz 可视化完成**（2026-04-01）：
+    - 新增 `autoracer_imu_tf_broadcaster` 包，参考 Wheeltec `imu_tf_broadcaster`
+    - 新增 `imu_attitude_viz.launch.py` 和 `imu_attitude.rviz`
+    - `autoracer.urdf.xacro` 支持 `prefix` 参数，生成 `viz_*` 前缀的可视化专用 URDF/TF 子树
+    - 可视化链路：`viz_world` → `viz_base_link` → `viz_*`
+    - 仅服务 RViz 姿态观察，不修改主 TF 链，不影响 SLAM Toolbox、GMapping、Nav2、LIO-SAM
+    - 验证方式：先启动 `ros2 launch hipnuc_imu imu_spec_msg.launch.py`，再运行 `ros2 launch autoracer_robot_urdf imu_attitude_viz.launch.py`
   - **LiDAR C32 点云朝向修正**（2026-01-29）：
     - 修正 CLAUDE.md 文档 yaw 记录（+90° → -90°）
     - LiDAR 坐标系（coordinate_opt=false）：+Y=前方(0°), +X=右侧(90°), +Z=上方
@@ -307,6 +316,13 @@
     - 修改 odom_frame 默认值：`odom_combined` → `odom`（适配 AutoRacer 当前 TF 树）
     - 重写 launch 文件：集成 pointcloud_to_laserscan + slam_gmapping + 可选 RViz2
     - 验证方式：`ros2 launch slam_gmapping slam_gmapping.launch.py`（需先启动底盘+LiDAR）
+  - **Stage Review 问题修复完成**（2026-04-02）：
+    - 默认 `turn_on_autoracer_robot.launch.py` 已接入 `autoracer_ekf.launch.py`，形成 `/imu/data_raw` → Madgwick → `/imu/data` → EKF → `/odom_combined` 默认链路
+    - `config/imu.yaml` 根节点名已与 `imu_filter_madgwick` 对齐；`config/ekf.yaml` 默认 IMU 输入改为 `/imu/data`
+    - `config/autoracer_params.yaml` 已收敛为 `autoracer_robot` 实际消费的串口/frame 参数，并由 `autoracer_serial.launch.py` 与主 bringup 直接加载
+    - `autoracer_slam_toolbox` 与 `slam_gmapping` 默认 RViz 已切换为 `slam.rviz`，匹配 `/scan` 链路
+    - `lio_sam` 包内旧 Wheeltec launch 已清理，当前唯一支持入口为 `autoracer_run.launch.py`
+    - 验证范围：仅完成 Python launch 语法校验、URDF 展开、目标包构建与无串口依赖的 launch 检查；未进行 STM32 串口、控制链路与实车 odom/EKF 输出测试
 
 - 待办（仅作记录，不代表现在要实现，详见 `TODO.md`）：
   - 【P0 核心基础】~~静态 TF 配置（LiDAR/ZED X）~~ ✅、~~N300 Pro IMU 集成~~ ✅、G90 GNSS+RTK 集成、~~URDF 模型~~ ✅、Ackermann 消息、~~RViz 配置~~ ✅
@@ -345,13 +361,17 @@
   - **N300 Pro udevadm 信息**：`udevadm info -a /dev/ttyUSB0 | grep -E '(idVendor|idProduct|serial)'`
   - **N300 Pro IMU 驱动**：`ros2 launch hipnuc_imu imu_spec_msg.launch.py`
   - **N300 Pro IMU 数据**：`ros2 topic echo /imu/data_raw`
+  - **IMU 姿态专用 RViz 可视化**：`ros2 launch autoracer_robot_urdf imu_attitude_viz.launch.py`
   - **完整启动（含 N300 Pro）**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - **完整启动（默认含 EKF）**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+  - **完整启动（关闭 EKF）**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_ekf:=false`
   - **EKF 融合单独启动**：`ros2 launch turn_on_autoracer_robot autoracer_ekf.launch.py`
   - **URDF 模型单独加载**：`ros2 launch autoracer_robot_urdf robot_description.launch.py`
   - **URDF 带关节 GUI**：`ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true`
   - **URDF 验证**：`check_urdf <(xacro src/autoracer_robot_urdf/urdf/autoracer.urdf.xacro)`
   - **不使用 URDF 启动**：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py use_urdf:=false`
   - **LIO-SAM 3D SLAM**：`ros2 launch lio_sam autoracer_run.launch.py`（需先启动底盘+LiDAR+IMU）
+  - **LIO-SAM 当前唯一支持入口**：`ros2 launch lio_sam autoracer_run.launch.py`
   - **LIO-SAM 保存地图**：`ros2 service call /lio_sam/save_map lio_sam/srv/SaveMap "{resolution: 0.2, destination: ''}"`
   - **LIO-SAM 编译**：`colcon build --packages-select lio_sam --symlink-install --parallel-workers 2`
   - **SLAM Toolbox 2D 建图**：`ros2 launch autoracer_slam_toolbox slam.launch.py`（需先启动底盘+LiDAR）

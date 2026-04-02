@@ -15,6 +15,8 @@
     最大转向角: 0.393 rad (≈22.5°)
 -->
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="autoracer">
+  <xacro:arg name="prefix" default=""/>
+  <xacro:property name="prefix" value="$(arg prefix)"/>
 
   <!-- ==================== 参数定义 ==================== -->
   <!-- 底盘尺寸 -->
@@ -110,7 +112,7 @@
   </xacro:macro>
 
   <!-- ==================== base_link (后轴中心，轴高度) ==================== -->
-  <link name="base_link">
+  <link name="${prefix}base_link">
     <inertial>
       <origin xyz="${chassis_x_offset} 0 ${chassis_z_offset + chassis_height/2.0}" rpy="0 0 0"/>
       <mass value="${chassis_mass}"/>
@@ -133,26 +135,26 @@
 
   <!-- ==================== 后轮 (continuous joints) ==================== -->
   <!-- 左后轮 -->
-  <xacro:wheel_link name="rear_left_wheel_link"/>
-  <joint name="rear_left_wheel_joint" type="continuous">
+  <xacro:wheel_link name="${prefix}rear_left_wheel_link"/>
+  <joint name="${prefix}rear_left_wheel_joint" type="continuous">
     <origin xyz="0 ${track_width/2.0} 0" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="rear_left_wheel_link"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}rear_left_wheel_link"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <!-- 右后轮 -->
-  <xacro:wheel_link name="rear_right_wheel_link"/>
-  <joint name="rear_right_wheel_joint" type="continuous">
+  <xacro:wheel_link name="${prefix}rear_right_wheel_link"/>
+  <joint name="${prefix}rear_right_wheel_joint" type="continuous">
     <origin xyz="0 ${-track_width/2.0} 0" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="rear_right_wheel_link"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}rear_right_wheel_link"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <!-- ==================== 前轮转向 (revolute + continuous) ==================== -->
   <!-- 左前转向节 -->
-  <link name="front_left_steering_link">
+  <link name="${prefix}front_left_steering_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="${steering_mass}"/>
@@ -166,25 +168,25 @@
       <material name="steering_color"/>
     </visual>
   </link>
-  <joint name="front_left_steering_joint" type="revolute">
+  <joint name="${prefix}front_left_steering_joint" type="revolute">
     <origin xyz="${wheelbase} ${track_width/2.0} 0" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="front_left_steering_link"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}front_left_steering_link"/>
     <axis xyz="0 0 1"/>
     <limit lower="${-max_steering_angle}" upper="${max_steering_angle}" effort="10" velocity="1.0"/>
   </joint>
 
   <!-- 左前轮 -->
-  <xacro:wheel_link name="front_left_wheel_link"/>
-  <joint name="front_left_wheel_joint" type="continuous">
+  <xacro:wheel_link name="${prefix}front_left_wheel_link"/>
+  <joint name="${prefix}front_left_wheel_joint" type="continuous">
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <parent link="front_left_steering_link"/>
-    <child link="front_left_wheel_link"/>
+    <parent link="${prefix}front_left_steering_link"/>
+    <child link="${prefix}front_left_wheel_link"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <!-- 右前转向节 -->
-  <link name="front_right_steering_link">
+  <link name="${prefix}front_right_steering_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="${steering_mass}"/>
@@ -198,26 +200,26 @@
       <material name="steering_color"/>
     </visual>
   </link>
-  <joint name="front_right_steering_joint" type="revolute">
+  <joint name="${prefix}front_right_steering_joint" type="revolute">
     <origin xyz="${wheelbase} ${-track_width/2.0} 0" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="front_right_steering_link"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}front_right_steering_link"/>
     <axis xyz="0 0 1"/>
     <limit lower="${-max_steering_angle}" upper="${max_steering_angle}" effort="10" velocity="1.0"/>
   </joint>
 
   <!-- 右前轮 -->
-  <xacro:wheel_link name="front_right_wheel_link"/>
-  <joint name="front_right_wheel_joint" type="continuous">
+  <xacro:wheel_link name="${prefix}front_right_wheel_link"/>
+  <joint name="${prefix}front_right_wheel_joint" type="continuous">
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <parent link="front_right_steering_link"/>
-    <child link="front_right_wheel_link"/>
+    <parent link="${prefix}front_right_steering_link"/>
+    <child link="${prefix}front_right_wheel_link"/>
     <axis xyz="0 1 0"/>
   </joint>
 
   <!-- ==================== 传感器 link ==================== -->
   <!-- LiDAR C32 (固定在 base_link 上) -->
-  <link name="laser">
+  <link name="${prefix}laser">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.5"/>
@@ -237,14 +239,14 @@
       </geometry>
     </collision>
   </link>
-  <joint name="laser_joint" type="fixed">
+  <joint name="${prefix}laser_joint" type="fixed">
     <origin xyz="${lidar_x} 0 ${lidar_z}" rpy="0 0 ${lidar_yaw}"/>
-    <parent link="base_link"/>
-    <child link="laser"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}laser"/>
   </joint>
 
   <!-- ZED X 深度相机 (固定在 base_link 上) -->
-  <link name="zed_camera_link">
+  <link name="${prefix}zed_camera_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.2"/>
@@ -264,10 +266,10 @@
       </geometry>
     </collision>
   </link>
-  <joint name="zed_camera_joint" type="fixed">
+  <joint name="${prefix}zed_camera_joint" type="fixed">
     <origin xyz="${zed_x} 0 ${zed_z}" rpy="0 0 0"/>
-    <parent link="base_link"/>
-    <child link="zed_camera_link"/>
+    <parent link="${prefix}base_link"/>
+    <child link="${prefix}zed_camera_link"/>
   </joint>
 
 </robot>

@@ -81,7 +81,7 @@
 ### 3.4 GNSS 融合
 
 - [ ] 集成 G90 GNSS+RTK 后，启用 LIO-SAM GPS 因子（`gpsTopic`）
-- [ ] 使用 `launch/run_gnss.launch.py` 或在 `autoracer_run.launch.py` 中添加 GPS odometry 节点
+- [ ] 在 `autoracer_run.launch.py` 基础上补充 AutoRacer 专用 GPS odometry / GNSS launch
 - [ ] 调整 `gpsCovThreshold` 和 `poseCovThreshold` 控制 GPS 因子频率
 
 ### 3.5 参数调优备忘

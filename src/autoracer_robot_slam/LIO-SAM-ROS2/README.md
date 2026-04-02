@@ -129,15 +129,20 @@ README.md of the master branch contains some links to ROS1 rosbags. It is possib
 
 ## Run the package
 
-1. Run the launch file:
+Current AutoRacer repository entry:
+
+1. Start the required data producers first, or play a bag that already contains `/point_cloud_raw` and `/imu/data_raw`.
+2. Run the launch file:
 ```
-ros2 launch lio_sam run.launch.py
+ros2 launch lio_sam autoracer_run.launch.py
 ```
 
-2. Play existing bag files:
+3. Optional: play existing bag files if they provide the same topic interface:
 ```
 ros2 bag play your-bag.bag
 ```
+
+Legacy `run*.launch.py` wrappers that depended on Wheeltec bringup have been removed from this repository. GNSS/offline workflows need a future AutoRacer-specific launch.
 
 ## Save map
 ```

@@ -5,7 +5,7 @@ This launch file starts only the serial driver node without TF transforms or oth
 Reference: wheeltec_ros2/src/turn_on_wheeltec_robot/launch/turn_on_wheeltec_robot.launch.py
 """
 
-import os
+from pathlib import Path
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
@@ -16,6 +16,7 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     # Get package share directory
     pkg_share = get_package_share_directory('turn_on_autoracer_robot')
+    params_file = Path(pkg_share, 'config', 'autoracer_params.yaml')
 
     # Declare launch arguments
     usart_port_arg = DeclareLaunchArgument(
@@ -48,19 +49,22 @@ def generate_launch_description():
         description='Gyroscope frame ID'
     )
 
+    robot_parameters = [params_file] if params_file.exists() else []
+    robot_parameters.append({
+        'usart_port_name': LaunchConfiguration('usart_port_name'),
+        'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
+        'robot_frame_id': LaunchConfiguration('robot_frame_id'),
+        'odom_frame_id': LaunchConfiguration('odom_frame_id'),
+        'gyro_frame_id': LaunchConfiguration('gyro_frame_id'),
+    })
+
     # Serial communication node
     autoracer_robot = Node(
         package='turn_on_autoracer_robot',
         executable='autoracer_robot',
         name='autoracer_robot',
         output='screen',
-        parameters=[{
-            'usart_port_name': LaunchConfiguration('usart_port_name'),
-            'serial_baud_rate': LaunchConfiguration('serial_baud_rate'),
-            'robot_frame_id': LaunchConfiguration('robot_frame_id'),
-            'odom_frame_id': LaunchConfiguration('odom_frame_id'),
-            'gyro_frame_id': LaunchConfiguration('gyro_frame_id'),
-        }]
+        parameters=robot_parameters
     )
 
     return LaunchDescription([
