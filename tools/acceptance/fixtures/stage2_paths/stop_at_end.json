@@ -1,0 +1,22 @@
+{
+  "fixture_version": 1,
+  "case": "stop_at_end",
+  "description": "Short straight path whose acceptance requires a stop command near the final pose.",
+  "message_semantics": "nav_msgs/Path",
+  "frame_id": "odom",
+  "target_speed_mps": 0.18,
+  "terminal_speed_mps": 0.0,
+  "stop_at_end": true,
+  "allow_reverse": false,
+  "expected": {
+    "steering_sign": "near_zero",
+    "max_abs_steering_rad": 0.1,
+    "stop_distance_m": 0.2
+  },
+  "poses": [
+    {"x": 0.0, "y": 0.0, "yaw_rad": 0.0},
+    {"x": 0.5, "y": 0.0, "yaw_rad": 0.0},
+    {"x": 1.0, "y": 0.0, "yaw_rad": 0.0},
+    {"x": 1.5, "y": 0.0, "yaw_rad": 0.0}
+  ]
+}
