@@ -10,7 +10,7 @@
 | `开发流程与验证规范.md` | 上位机提交、构建验证、文档同步和验收追踪表回填规则 |
 | `test-records/` | 阶段验收记录模板和可提交证据摘要 |
 | `../tools/` | 上位机辅助工具索引 |
-| `../tools/acceptance/` | 阶段 1 离线/在线检查脚本和阶段 2 path fixture 检查脚本 |
+| `../tools/acceptance/` | 阶段 1 离线/在线检查脚本、阶段 2 path fixture 检查脚本和 fake odom 检查入口 |
 
 ## 归档资料
 

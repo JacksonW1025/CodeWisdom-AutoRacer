@@ -12,6 +12,8 @@ Case:
 测试类型: fixture-check / tracker-offline / fake-odom / jack-test / ground-low-speed
 测试命令:
 测试输入 fixture:
+path topic: /path_tracking/path
+diagnostics topic: /path_tracking/diagnostics
 日志路径:
 rosbag 路径:
 
@@ -24,6 +26,31 @@ rosbag 路径:
 | `right_arc_r2m` | 转角方向、限幅、误差记录 | 实车右转方向和半径 |  | 未实现/FAIL/PASS/BLOCKED |
 | `s_curve` | 转角切换、限幅、误差记录 | 是否平滑、是否抖动 |  | 未实现/FAIL/PASS/BLOCKED |
 | `stop_at_end` | 终点停车命令和停车距离 | 是否实际停住 |  | 未实现/FAIL/PASS/BLOCKED |
+
+## Tracker 参数
+
+| 参数 | 值 |
+| --- | --- |
+| tracker | Pure Pursuit |
+| `lookahead_m` | 0.60 |
+| `goal_tolerance_m` | 0.20 |
+| `control_rate_hz` | 20 |
+| `allow_reverse` | false |
+| `wheelbase_m` | 0.54 |
+| `max_steering_angle_rad` | 0.393 |
+
+## Diagnostics 字段记录
+
+| 字段 | 证据 |
+| --- | --- |
+| `case_name` |  |
+| `target_index` |  |
+| `lateral_error_m` |  |
+| `heading_error_rad` |  |
+| `target_speed_mps` / `actual_speed_mps` |  |
+| `steering_command_rad` |  |
+| `steering_limited` / `speed_limited` |  |
+| `stop_commanded` / `remaining_distance_m` |  |
 
 ## 结果
 

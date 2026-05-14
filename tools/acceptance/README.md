@@ -24,6 +24,7 @@ tools/
     README.md
     stage1_acceptance_check.py
     stage2_path_fixture_check.py
+    stage2_tracker_fake_odom_check.py   # 待实现
     fixtures/
       stage2_paths/
         straight_2m.json
@@ -57,7 +58,7 @@ python3 tools/acceptance/stage1_acceptance_check.py --mode live
 python3 tools/acceptance/stage1_acceptance_check.py --mode live --require-odom
 ```
 
-Use `--require-odom` only after `/imu/data`, `/wheel_odom`, and EKF `/odom` are expected to be running.
+`--require-odom` 用于 `/imu/data`、`/wheel_odom` 和 EKF `/odom` 均已启动的检查场景。
 
 ## Phase 2 Fixture Check
 
@@ -66,3 +67,10 @@ python3 tools/acceptance/stage2_path_fixture_check.py
 ```
 
 这些 fixture 是后续 tracker 的固定输入样例；fixture 检查只读取本地 JSON 文件并校验路径几何。
+
+阶段 2 tracker 实现契约：
+
+- test path publisher 发布 `/path_tracking/path`，类型 `nav_msgs/msg/Path`。
+- Pure Pursuit tracker 订阅 `/path_tracking/path` 和 `/odom`，发布 `/ackermann_cmd`。
+- diagnostics publisher 发布 `/path_tracking/diagnostics`，类型 `autoracer_interfaces/msg/PathTrackingDiagnostics`。
+- `stage2_tracker_fake_odom_check.py` 实现后，必须使用本目录 fixture 检查转角方向、限幅、S 弯符号切换和到点停车。

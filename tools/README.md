@@ -6,6 +6,6 @@
 
 | 路径 | 作用 |
 | --- | --- |
-| `acceptance/` | 阶段验收工具和 fixture。当前覆盖阶段 1 最小验收检查、阶段 2 path fixture 检查。 |
+| `acceptance/` | 阶段验收工具和 fixture。当前覆盖阶段 1 最小验收检查、阶段 2 path fixture 检查和 fake odom 检查入口。 |
 
 系统级验收规则见根仓库 `../docs/阶段路线图.md` 和 `../docs/开发流程与验证规范.md`。

@@ -12,6 +12,7 @@ Case:
 测试类型: offline-protocol / launch-check / live-topic / bench-uart / jack-test / ground-low-speed
 测试命令:
 测试输入:
+counts_per_meter 标定记录:
 日志路径:
 rosbag 路径:
 串口日志路径:
@@ -26,6 +27,29 @@ rosbag 路径:
 | `fused_odom` |  | IMU/底盘/TF 现场状态确认 |  | 未实现/FAIL/PASS/BLOCKED |
 | `motion_basic` |  | 架空/落地安全、运动方向、停车效果 |  | 未实现/FAIL/PASS/BLOCKED |
 | `safety_basic` |  | RC 接管、急停、刹车实际动作 |  | 未实现/FAIL/PASS/BLOCKED |
+
+## 标准命令记录
+
+| 命令 | speed_mps | steering_angle_rad | enable | brake | emergency_stop | 持续时间 | 证据 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `straight_low_speed` | `0.10` | `0.0` | `true` | `false` | `false` | `2 s` |  |
+| `left_low_speed` | `0.10` | `+0.15` | `true` | `false` | `false` | `2 s` |  |
+| `right_low_speed` | `0.10` | `-0.15` | `true` | `false` | `false` | `2 s` |  |
+| `stop_command` | `0.0` | `0.0` | `true` | `true` | `false` | once |  |
+| `timeout_stop` | 停止发布命令 |  |  |  |  |  |  |
+| `estop_command` | `0.0` | `0.0` | `false` | `true` | `true` | once |  |
+
+## 状态位记录
+
+| 状态位 | 证据 | 状态 |
+| --- | --- | --- |
+| `AUTO_ENABLED` |  | 未实现/FAIL/PASS/BLOCKED |
+| `RC_OVERRIDE_ACTIVE` |  | 未实现/FAIL/PASS/BLOCKED |
+| `ESTOP_ACTIVE` |  | 未实现/FAIL/PASS/BLOCKED |
+| `COMMAND_TIMEOUT` |  | 未实现/FAIL/PASS/BLOCKED |
+| `BRAKE_ACTIVE` |  | 未实现/FAIL/PASS/BLOCKED |
+| `SPEED_SATURATED` / `STEERING_SATURATED` |  | 未实现/FAIL/PASS/BLOCKED |
+| `ACCEL_LIMITED` / `STEERING_RATE_LIMITED` |  | 未实现/FAIL/PASS/BLOCKED |
 
 ## 运动安全记录
 
