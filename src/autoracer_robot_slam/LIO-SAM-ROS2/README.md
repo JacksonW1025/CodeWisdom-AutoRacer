@@ -1,5 +1,7 @@
 # LIO-SAM
 
+> AutoRacer note: this is mostly the upstream LIO-SAM README. Current AutoRacer launch, odom, and TF rules live in `../../../docs/启动与运行规范.md`; phase acceptance rules live in the root workspace docs. Treat this file as algorithm/package reference, not as the current system runbook.
+
 **A real-time lidar-inertial odometry package. We strongly recommend the users read this document thoroughly and test the package with the provided dataset first. A video of the demonstration of the method can be found on [YouTube](https://www.youtube.com/watch?v=A0H8CoORZJU).**
 
 <p align='center'>
