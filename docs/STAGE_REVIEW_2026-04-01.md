@@ -1,5 +1,7 @@
 # AutoRacer vs Wheeltec 全仓迁移阶段性 Review 报告
 
+> 历史 review 文件：本文不能作为当前状态权威。当前状态以根仓库 `docs/`、根 `README.md` 和 `CodeWisdom-AutoRacer/docs/开发流程与验证规范.md` 为准。
+
 - 日期: 2026-04-01
 - 分支: `nav`
 - 评审方式: 静态代码对比 + 关键包定向编译 + Python launch 语法校验 + URDF 生成校验
