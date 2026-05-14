@@ -1,13 +1,13 @@
 # Reference code (do not commit)
 reference/
 
-# Agent files
-# AGENT.md
-# CLAUDE.md
-# AGENTLOG.md
-# PROMPT.md
-# PJINFO.md
-# TODO.md
+# Legacy agent scratch files should not return to the repository root.
+/AGENT.md
+/CLAUDE.md
+/AGENTLOG.md
+/PROMPT.md
+/PJINFO.md
+/TODO.md
 
 # ROS2 build artifacts
 build/
