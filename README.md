@@ -31,6 +31,7 @@
 - [docs/README.md](docs/README.md)：上位机文档索引。
 - [docs/启动与运行规范.md](docs/启动与运行规范.md)：当前 ROS2 启动入口、launch 参数、topic 检查和阶段验收入口。
 - [docs/开发流程与验证规范.md](docs/开发流程与验证规范.md)：上位机提交、构建验证、根文档同步和阶段验收回填规则。
+- [tools/README.md](tools/README.md)：上位机辅助工具目录说明。
 - [tools/acceptance/README.md](tools/acceptance/README.md)：阶段 1 最小验收检查和阶段 2 path fixture 检查。
 - `docs/archive/`：历史 agent 记录和阶段 review，只作为回溯资料，不作为当前状态权威。
 
