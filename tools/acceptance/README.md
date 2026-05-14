@@ -33,7 +33,7 @@ tools/
         stop_at_end.json
 ```
 
-后续如果每个阶段的脚本超过 3 个，再拆成 `acceptance/stage1/`、`acceptance/stage2/`、`acceptance/stage3/`。当前不提前拆目录，避免为了空结构增加维护成本。
+单个阶段的脚本数量超过 3 个时，再拆成 `acceptance/stage1/`、`acceptance/stage2/`、`acceptance/stage3/`。当前保持扁平结构，减少空目录维护成本。
 
 ## Phase 1 Offline Checks
 
