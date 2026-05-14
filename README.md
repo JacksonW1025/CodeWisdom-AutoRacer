@@ -4,13 +4,13 @@
 
 ## Current Status
 
-- 默认底盘入口：`ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py`
+- 默认底盘入口保留 legacy/default 语义
   - 启动 `autoracer_robot`
   - 当前仍是 legacy/default 语义：订阅 `/cmd_vel`，发布 raw `/odom`
   - 可选接入 N300 Pro IMU
   - 默认启动 Madgwick 与 `robot_localization` EKF，形成 `/imu/data_raw -> /imu/data -> /odom_combined`
   - 启动 URDF / TF
-- phase-1 Ackermann 验收入口：`ros2 launch turn_on_autoracer_robot ackermann_chassis.launch.py counts_per_meter:=<实测值> use_ekf:=true`
+- phase-1 Ackermann 验收入口以 `docs/启动与运行规范.md` 为准
   - 验收时必须满足 `counts_per_meter>0`
   - canonical odom 链路为 `/wheel_odom + /imu/data -> robot_localization -> /odom`
   - `/cmd_vel` 兼容入口只用于迁移、手动调试或 legacy 兼容，不作为正式 STM32 下行协议或阶段验收入口
@@ -19,35 +19,12 @@
   - IMU: `hipnuc_imu`
   - URDF / RViz: `autoracer_robot_urdf`, `autoracer_imu_tf_broadcaster`
   - 2D SLAM: `autoracer_slam_toolbox`, `slam_gmapping`
-  - 3D SLAM: `lio_sam`，当前唯一支持入口为 `ros2 launch lio_sam autoracer_run.launch.py`
+  - 3D SLAM: `lio_sam`
   - Navigation: `autoracer_robot_nav2`
 
 ## Quick Start
 
-```bash
-source /home/car/CodeWisdom-AutoRacer/source_all.sh
-colcon build --symlink-install
-
-# 默认 bringup（含 EKF）
-ros2 launch turn_on_autoracer_robot turn_on_autoracer_robot.launch.py
-
-# phase-1 Ackermann odom 验收
-ros2 launch turn_on_autoracer_robot ackermann_chassis.launch.py counts_per_meter:=<实测值> use_ekf:=true
-
-# LiDAR
-ros2 launch lslidar_driver lslidar_cx_launch.py
-
-# 2D SLAM
-ros2 launch autoracer_slam_toolbox slam.launch.py
-# or
-ros2 launch slam_gmapping slam_gmapping.launch.py
-
-# 若仍配合 legacy/default bringup 的 /odom_combined
-ros2 launch autoracer_slam_toolbox slam.launch.py odom_frame:=odom_combined
-
-# 3D SLAM
-ros2 launch lio_sam autoracer_run.launch.py
-```
+启动入口、launch 参数和运行检查只维护在 [启动与运行规范](docs/启动与运行规范.md)。
 
 ## Notes
 
