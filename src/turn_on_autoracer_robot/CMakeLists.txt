@@ -24,6 +24,10 @@ add_executable(autoracer_robot
   src/Quaternion_Solution.cpp
 )
 
+add_executable(ackermann_chassis_bridge
+  src/ackermann_chassis_bridge.cpp
+)
+
 ament_target_dependencies(autoracer_robot
   rclcpp
   std_msgs
@@ -37,8 +41,20 @@ ament_target_dependencies(autoracer_robot
   serial
 )
 
+ament_target_dependencies(ackermann_chassis_bridge
+  rclcpp
+  std_msgs
+  geometry_msgs
+  nav_msgs
+  tf2
+  tf2_geometry_msgs
+  autoracer_interfaces
+  serial
+)
+
 install(TARGETS
   autoracer_robot
+  ackermann_chassis_bridge
   DESTINATION lib/${PROJECT_NAME}
 )
 

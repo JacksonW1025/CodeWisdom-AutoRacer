@@ -1,0 +1,19 @@
+ackermann_chassis_bridge:
+  ros__parameters:
+    usart_port_name: "/dev/ttyACM0"
+    serial_baud_rate: 115200
+
+    odom_frame_id: "odom"
+    robot_frame_id: "base_footprint"
+
+    wheelbase_m: 0.54
+    max_steering_angle_rad: 0.393
+    min_turn_speed_mps: 0.05
+    max_auto_speed_mps: 0.50
+    max_reverse_speed_mps: 0.30
+
+    # STM32 Hall default: 10 events / (pi * 0.235 m). Recalibrate on the real car.
+    counts_per_meter: 13.54
+
+    publish_power_voltage: true
+    serial_poll_period_ms: 5
