@@ -2,8 +2,8 @@
 
 This document records the extrinsic (geometric) parameters of the AutoRacer vehicle, extracted from the URDF model (`urdf/autoracer.urdf.xacro`).
 
-Measured: 2026-05-15 calibration update for wheelbase, wheel diameter, and steering limits.
-Track width, body outline, and sensor extrinsics still need physical recheck before final navigation tuning.
+Measured: 2026-05-15 calibration update for wheelbase, wheel diameter, steering limits, track width, body envelope width, front overhang, and rear overhang.
+Total height and sensor extrinsics still need physical recheck after the final LiDAR/camera/support installation.
 
 ## Coordinate System Convention
 
@@ -18,14 +18,14 @@ Following ROS REP-103:
 | Parameter | Value | Unit | Description |
 |-----------|-------|------|-------------|
 | `wheelbase` | 0.60 | m | Front-to-rear axle distance |
-| `track_width` | 0.48 | m | Left-to-right wheel distance |
+| `track_width` | 0.47 | m | Left-to-right wheel center distance |
 | `wheel_radius` | 0.1175 | m | Wheel radius from confirmed 0.235 m diameter |
 | `wheel_width` | 0.08 | m | Wheel width |
 | `max_steering_angle` | 0.262 | rad | Max steering angle (~15°) |
-| `chassis_length` | 0.85 | m | Vehicle total length |
-| `chassis_width` | 0.50 | m | Vehicle total width |
+| `chassis_length` | 0.8775 | m | Vehicle collision envelope length: 0.16 + 0.60 + 0.1175 |
+| `chassis_width` | 0.57 | m | Vehicle collision envelope width |
 | `chassis_height` | 0.20 | m | Chassis box height (URDF visual) |
-| `front_axle_to_front` | 0.15 | m | Front axle to front bumper |
+| `front_axle_to_front` | 0.1175 | m | Front axle to frontmost wheel point; front wheels extend beyond bumper |
 | `rear_axle_to_rear` | 0.16 | m | Rear axle to rear bumper |
 | `axle_height` | 0.1175 | m | Axle center height above ground |
 
@@ -70,10 +70,10 @@ Relative to `base_link`:
 
 | Wheel | X (m) | Y (m) | Z (m) | Joint Type |
 |-------|-------|-------|-------|------------|
-| Rear Left | 0.00 | +0.24 | 0.00 | continuous |
-| Rear Right | 0.00 | -0.24 | 0.00 | continuous |
-| Front Left Steering | +0.60 | +0.24 | 0.00 | revolute (±15°) |
-| Front Right Steering | +0.60 | -0.24 | 0.00 | revolute (±15°) |
+| Rear Left | 0.00 | +0.235 | 0.00 | continuous |
+| Rear Right | 0.00 | -0.235 | 0.00 | continuous |
+| Front Left Steering | +0.60 | +0.235 | 0.00 | revolute (±15°) |
+| Front Right Steering | +0.60 | -0.235 | 0.00 | revolute (±15°) |
 
 ## TF Frame Hierarchy
 

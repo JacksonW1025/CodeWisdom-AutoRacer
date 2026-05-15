@@ -75,7 +75,7 @@
 
 ### 3.3 LiDAR-IMU 外参精标定
 
-- [ ] 当前平移外参 `extrinsicTrans: [0.24, 0.0, 0.50]` 基于手工测量，精度有限
+- [ ] 当前平移外参 `extrinsicTrans: [0.24, 0.0, 0.5075]` 基于手工测量，精度有限
 - [ ] 旋转外参基于坐标系理论推导，可能存在微小安装偏差
 - [ ] 考虑使用 [lidar_imu_calib](https://github.com/chennuo0125-HIT/lidar_imu_calib) 进行自动标定
 

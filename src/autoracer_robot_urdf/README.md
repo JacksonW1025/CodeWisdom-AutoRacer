@@ -16,7 +16,7 @@ autoracer_robot_urdf/
 
 ## URDF 模型内容
 
-- **底盘** (base_link): 长 0.85m × 宽 0.50m × 高 0.20m 方块
+- **底盘/碰撞外廓** (base_link): 长 0.8775m × 宽 0.57m × 高 0.20m 方块；总高待雷达/支架最终安装后复核
 - **后轮** × 2: 半径 0.1175m 圆柱，continuous joint
 - **前轮** × 2: 带转向节 (revolute ±15°) + 车轮 (continuous)
 - **LiDAR C32** (laser): 固定在 base_link 前方 X=+0.24m, Z=+0.39m

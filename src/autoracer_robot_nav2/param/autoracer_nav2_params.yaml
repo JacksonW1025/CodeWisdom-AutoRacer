@@ -1,7 +1,7 @@
 # Nav2 导航参数 - AutoRacer Ackermann 转向专用配置
 # 参考: wheeltec_robot_nav2/param/wheeltec_params/param_top_akm_bs.yaml
-# AutoRacer 参数: 轴距 0.60m, 轮距 0.48m, 最小转弯半径 ~2.24m
-# 车身尺寸: 0.85m × 0.50m, base_link 在后轴中心
+# AutoRacer 参数: 轴距 0.60m, 轮距 0.47m, 最小转弯半径 ~2.24m
+# 车身碰撞外廓: 0.8775m × 0.57m, base_link 在后轴中心
 
 # === AMCL 自适应蒙特卡洛定位 ===
 amcl:
@@ -215,8 +215,8 @@ local_costmap:
       height: 3
       resolution: 0.05
       # AutoRacer 车身轮廓 (base_link 在后轴中心)
-      # 后端: -0.16m, 前端: +0.69m, 半宽: ±0.25m
-      footprint: "[ [-0.16, -0.25], [-0.16, 0.25], [0.69, 0.25], [0.69, -0.25] ]"
+      # 后端: -0.16m, 前端: +0.7175m, 半宽: ±0.285m
+      footprint: "[ [-0.16, -0.285], [-0.16, 0.285], [0.7175, 0.285], [0.7175, -0.285] ]"
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
@@ -259,7 +259,7 @@ global_costmap:
       global_frame: map
       robot_base_frame: base_footprint
       use_sim_time: False
-      footprint: "[ [-0.16, -0.25], [-0.16, 0.25], [0.69, 0.25], [0.69, -0.25] ]"
+      footprint: "[ [-0.16, -0.285], [-0.16, 0.285], [0.7175, 0.285], [0.7175, -0.285] ]"
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]

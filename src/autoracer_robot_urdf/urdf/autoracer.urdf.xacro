@@ -8,9 +8,9 @@
     base_link = 后轴中心，轴高度 (Z=0.1175m above ground)
 
   当前参数 (2026-05-15 calibration update):
-    车辆外廓: 长0.85m, 宽0.50m, 总高0.40m；URDF 底盘盒高0.20m
-    轴距: 0.60m (前轴距车头0.15m, 后轴距车尾0.16m)
-    轮距: 0.48m (待复核)
+    车辆碰撞外廓: 长0.8775m, 宽0.57m；总高待复核；URDF 底盘盒高0.20m
+    轴距: 0.60m (前轮最前点距前轴0.1175m, 后轴距车尾0.16m)
+    轮距: 0.47m
     轮径: 0.235m (半径0.1175m)
     最大转向角: 0.262 rad (≈15°)
 -->
@@ -20,19 +20,19 @@
 
   <!-- ==================== 参数定义 ==================== -->
   <!-- 底盘尺寸 -->
-  <xacro:property name="chassis_length" value="0.85"/>
-  <xacro:property name="chassis_width" value="0.50"/>
+  <xacro:property name="chassis_length" value="0.8775"/>
+  <xacro:property name="chassis_width" value="0.57"/>
   <xacro:property name="chassis_height" value="0.20"/>
 
   <!-- Ackermann 运动学参数 -->
   <xacro:property name="wheelbase" value="0.60"/>
-  <xacro:property name="track_width" value="0.48"/>
+  <xacro:property name="track_width" value="0.47"/>
   <xacro:property name="wheel_radius" value="0.1175"/>
   <xacro:property name="wheel_width" value="0.08"/>
   <xacro:property name="max_steering_angle" value="0.262"/>
 
   <!-- 底盘布局 (base_link 在后轴中心) -->
-  <xacro:property name="front_axle_to_front" value="0.15"/>
+  <xacro:property name="front_axle_to_front" value="0.1175"/>
   <xacro:property name="rear_axle_to_rear" value="0.16"/>
 
   <!-- base_link 高度 (轴心离地高度) -->
