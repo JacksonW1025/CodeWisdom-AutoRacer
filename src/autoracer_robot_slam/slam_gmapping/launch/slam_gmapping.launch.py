@@ -1,10 +1,13 @@
 """
 GMapping 2D SLAM Launch 文件 - AutoRacer 专用
-一键启动: 底盘驱动 + LiDAR + pointcloud_to_laserscan + slam_gmapping + RViz2(可选)
+
+阶段 3 稳定主线优先使用 slam_toolbox。若用本包做对照验证，阶段验收也必须
+使用 include_bringup:=false，并按 docs/启动与运行规范.md 单独启动 phase-1
+Ackermann 底盘链路和 LiDAR。include_bringup:=true 会拉起 legacy/default bringup，
+只允许迁移排障，不能作为阶段 3 PASS 入口。
 
 用法:
-  ros2 launch slam_gmapping slam_gmapping.launch.py                          # 一键启动（含底盘+LiDAR）
-  ros2 launch slam_gmapping slam_gmapping.launch.py include_bringup:=false   # 仅 SLAM（需自行启动底盘+LiDAR）
+  ros2 launch slam_gmapping slam_gmapping.launch.py include_bringup:=false   # 对照验证入口
   ros2 launch slam_gmapping slam_gmapping.launch.py use_rviz:=false
 """
 
@@ -90,7 +93,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('include_bringup', default_value='true',
-                             description='是否同时启动底盘驱动和 LiDAR（一键启动）'),
+                             description='是否同时启动 legacy/default 底盘驱动和 LiDAR；阶段 3 验收必须为 false'),
         DeclareLaunchArgument('use_rviz', default_value='true',
                              description='是否启动 RViz2'),
         DeclareLaunchArgument('use_sim_time', default_value='false',

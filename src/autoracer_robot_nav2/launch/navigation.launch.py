@@ -1,6 +1,10 @@
 """
-Nav2 自主导航 Launch 文件 - AutoRacer 专用
-启动: pointcloud_to_laserscan + Nav2 (AMCL定位 + 路径规划 + MPPI控制)
+Nav2 自主导航 Launch 文件 - 仅历史/过渡参考，禁止作为阶段 4 稳定验收入口
+历史过渡启动: pointcloud_to_laserscan + Nav2 (AMCL定位 + 路径规划 + MPPI控制)
+
+注意：该入口保留当前 MPPI 过渡配置，不是阶段 4 稳定验收入口。阶段 4 稳定版必须使用
+AMCL + Smac Hybrid-A* + Regulated Pure Pursuit + Collision Monitor + twist_to_ackermann，
+并把 Nav2 controller 输出隔离为 /nav2_cmd_vel，Collision Monitor 输出隔离为 /safe_nav2_cmd_vel。
 
 前置: 需先启动底盘驱动 + LiDAR，以及已保存的地图文件
 

@@ -6,9 +6,13 @@ Nav2 导航配置包，适配 AutoRacer Ackermann 转向平台。
 
 ## 功能
 
-- Nav2 自主导航（AMCL 定位 + Hybrid A* 规划 + MPPI Ackermann 控制）
+- Nav2 地图导航历史/过渡配置参考
 - 地图加载与保存
 - pointcloud_to_laserscan 集成
+
+注意：本包当前默认配置仍包含 MPPI 历史/过渡参数，不作为阶段 4 稳定验收主线。阶段 4 稳定版必须以
+`CodeWisdom-AutoRacer/docs/启动与运行规范.md` 中的 AMCL + Smac Hybrid-A* + Regulated Pure Pursuit
++ Collision Monitor + `twist_to_ackermann` 链路为准。
 
 ## 依赖
 
@@ -28,8 +32,8 @@ ros2 launch lslidar_driver lslidar_cx_launch.py
 # 2. 启动 SLAM Toolbox 建图；阶段 3 验收必须关闭 legacy bringup include
 ros2 launch autoracer_slam_toolbox slam.launch.py include_bringup:=false
 
-# 3. 低速移动或按阶段 3 验收流程扫图
-ros2 run autoracer_keyboard keyboard_control
+# 3. 按阶段 3 验收流程低速扫图；运动证据必须通过 /ackermann_cmd 和 STM32 安全层
+# 本包不定义阶段 3 扫图控制入口，不得把 legacy/manual /cmd_vel 控制当作 PASS 证据
 
 # 4. 保存地图
 ros2 launch autoracer_robot_nav2 save_map.launch.py
@@ -41,7 +45,7 @@ ros2 launch autoracer_robot_nav2 save_map.launch.py
 # 1. 按 docs/启动与运行规范.md 启动 phase-1 Ackermann 底盘链路和 LiDAR
 ros2 launch lslidar_driver lslidar_cx_launch.py
 
-# 2. 启动 Nav2 导航（加载地图）
+# 2. 启动当前过渡 Nav2 入口（加载地图）；不能作为阶段 4 稳定版 PASS 证据
 ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/autoracer_map.yaml
 
 # 3. 在 RViz2 中设置初始位姿和目标点
@@ -54,8 +58,8 @@ ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/autoracer_ma
 | 参数 | 值 | 说明 |
 |------|-----|------|
 | min_turning_radius | 2.24m | 最小转弯半径 |
-| motion_model | Ackermann | MPPI 运动模型 |
-| planner | SmacPlannerHybrid | Reeds-Shepp 曲线 |
+| motion_model | Ackermann | 当前过渡 MPPI 运动模型；阶段 4 稳定版以 RPP + adapter 文档为准 |
+| planner | SmacPlannerHybrid | 当前过渡/4B 倒车配置使用 Reeds-Shepp；阶段 4A 稳定版必须使用 Dubins/forward-only |
 | footprint | 0.8775m × 0.57m | 车身碰撞轮廓 |
 
 ## 参考

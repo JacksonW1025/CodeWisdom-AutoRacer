@@ -1,4 +1,4 @@
-# Phase 3 SLAM Map Acceptance Record
+# 阶段 3 验收记录模板
 
 日期:
 测试人员:
@@ -13,8 +13,12 @@ Case:
 测试命令:
 测试输入:
 地图输出路径:
+地图保存命令:
+地图重载命令:
+pose-graph / serialized map 路径:
 日志路径:
 rosbag 路径:
+扫图运动方式:
 
 ## 追踪表
 
@@ -32,7 +36,10 @@ rosbag 路径:
 LiDAR frame:
 odom 来源:
 TF 检查结果:
+map save/reload 结果:
+bag replay 结果:
 是否沿用阶段 1 安全链路:
+是否仅使用 RC/遥控扫图:
 
 ## 结果
 

@@ -14,7 +14,7 @@ slam_toolbox:
     ceres_loss_function: None
 
     # === ROS 坐标系与话题 ===
-    odom_frame: odom            # 里程计坐标系（EKF 启用时改为 odom_combined）
+    odom_frame: odom            # 阶段 3 验收使用 phase-1 canonical /odom；odom_combined 仅用于 legacy/EKF 排障
     map_frame: map              # 地图坐标系
     base_frame: base_footprint  # 机器人基坐标系
     scan_topic: /scan           # 2D激光扫描话题（由 pointcloud_to_laserscan 发布）

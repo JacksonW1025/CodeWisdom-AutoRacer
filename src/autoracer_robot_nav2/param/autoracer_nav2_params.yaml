@@ -1,7 +1,10 @@
-# Nav2 导航参数 - AutoRacer Ackermann 转向专用配置
+# Nav2 导航参数 - AutoRacer Ackermann 转向历史/过渡参考配置
 # 参考: wheeltec_robot_nav2/param/wheeltec_params/param_top_akm_bs.yaml
 # AutoRacer 参数: 轴距 0.60m, 轮距 0.47m, 最小转弯半径 ~2.24m
 # 车身碰撞外廓: 0.8775m × 0.57m, base_link 在后轴中心
+# 注意: 当前文件仍包含 MPPI 历史/过渡参数，不能直接作为阶段 4 稳定版验收配置。
+# 阶段 4 稳定版主线必须改为 RPP + Collision Monitor + twist_to_ackermann，
+# 并按 docs/启动与运行规范.md 验收。
 
 # === AMCL 自适应蒙特卡洛定位 ===
 amcl:
@@ -26,7 +29,7 @@ amcl:
     max_beams: 60
     max_particles: 2000
     min_particles: 500
-    odom_frame_id: "odom"       # EKF 启用时改为 odom_combined
+    odom_frame_id: "odom"       # 阶段 4 稳定版使用 phase-1 canonical /odom；odom_combined 仅用于 legacy/EKF 排障
     pf_err: 0.05
     pf_z: 0.99
     recovery_alpha_fast: 0.0
@@ -68,7 +71,7 @@ bt_navigator:
     goal_reached_tol: 0.25      # 目标到达容差（米）
     global_frame: map
     robot_base_frame: base_footprint
-    odom_topic: /odom            # EKF 启用时改为 /odom_combined
+    odom_topic: /odom            # 阶段 4 稳定版使用 phase-1 canonical /odom；/odom_combined 仅用于 legacy/EKF 排障
     bt_loop_duration: 10
     default_server_timeout: 20
     error_code_names:
@@ -79,12 +82,12 @@ bt_navigator_rclcpp_node:
   ros__parameters:
     use_sim_time: False
 
-# === 控制器服务器 (MPPI Ackermann 运动模型) ===
+# === 控制器服务器 (MPPI 历史/过渡参考；阶段 4 稳定版不得直接使用) ===
 controller_server:
   ros__parameters:
     use_sim_time: False
     controller_frequency: 20.0
-    odom_topic: /odom            # EKF 启用时改为 /odom_combined
+    odom_topic: /odom            # 阶段 4 稳定版使用 phase-1 canonical /odom；/odom_combined 仅用于 legacy/EKF 排障
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["goal_checker"]
     controller_plugins: ["FollowPath"]
@@ -323,7 +326,7 @@ planner_server:
       max_iterations: 1000000
       max_on_approach_iterations: 1000
       max_planning_time: 5.0                  # 最大规划时间（秒）
-      motion_model_for_search: "REEDS_SHEPP"  # Ackermann 适用
+      motion_model_for_search: "REEDS_SHEPP"  # 过渡/4B 倒车配置；阶段 4A 稳定版必须使用 DUBIN 或等价 forward-only 配置
       cost_travel_multiplier: 2.0
       angle_quantization_bins: 72             # 5° 角度分辨率
       analytic_expansion_ratio: 3.5

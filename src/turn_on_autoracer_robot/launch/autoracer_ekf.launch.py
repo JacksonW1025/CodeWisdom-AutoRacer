@@ -1,6 +1,9 @@
 """
 EKF 传感器融合 Launch 文件 (AutoRacer)
 
+注意：本 launch 输出 /odom_combined，属于 legacy/default 链路的迁移和排障入口。
+阶段 1-4 验收使用 phase-1 canonical /odom，不以 /odom_combined 作为通过依据。
+
 参考: reference/wheeltec_ros2/src/turn_on_wheeltec_robot/launch/wheeltec_ekf.launch.py
 
 融合传感器:

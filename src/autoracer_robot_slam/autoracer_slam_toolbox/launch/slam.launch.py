@@ -1,12 +1,14 @@
 """
 SLAM Toolbox 2D 建图 Launch 文件 - AutoRacer 专用
-一键启动: 底盘驱动 + LiDAR + pointcloud_to_laserscan + slam_toolbox + RViz2(可选)
+
+阶段 3 验收必须使用 include_bringup:=false，并按 docs/启动与运行规范.md
+单独启动 phase-1 Ackermann 底盘链路和 LiDAR。include_bringup:=true 会拉起
+legacy/default bringup，只允许迁移排障，不能作为阶段 3 PASS 入口。
 
 用法:
-  ros2 launch autoracer_slam_toolbox slam.launch.py                          # 一键启动（含底盘+LiDAR）
-  ros2 launch autoracer_slam_toolbox slam.launch.py include_bringup:=false   # 仅 SLAM（需自行启动底盘+LiDAR）
+  ros2 launch autoracer_slam_toolbox slam.launch.py include_bringup:=false   # 阶段 3 验收入口
   ros2 launch autoracer_slam_toolbox slam.launch.py use_rviz:=false
-  ros2 launch autoracer_slam_toolbox slam.launch.py odom_frame:=odom_combined
+  ros2 launch autoracer_slam_toolbox slam.launch.py odom_frame:=odom_combined # 仅 legacy/EKF 排障
 """
 
 import os
@@ -96,11 +98,11 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('include_bringup', default_value='true',
-                             description='是否同时启动底盘驱动和 LiDAR（一键启动）'),
+                             description='是否同时启动 legacy/default 底盘驱动和 LiDAR；阶段 3 验收必须为 false'),
         DeclareLaunchArgument('use_rviz', default_value='true',
                              description='是否启动 RViz2'),
         DeclareLaunchArgument('odom_frame', default_value='odom',
-                             description='里程计坐标系 (odom 或 odom_combined)'),
+                             description='里程计坐标系；阶段 3 验收使用 odom，odom_combined 仅用于 legacy/EKF 排障'),
 
         autoracer_robot,
         autoracer_lidar,
