@@ -26,6 +26,7 @@ setup(
     entry_points={
         'console_scripts': [
             'test_path_publisher = autoracer_path_tracking.test_path_publisher:main',
+            'goal_path_publisher = autoracer_path_tracking.goal_path_publisher:main',
             'pure_pursuit_tracker = autoracer_path_tracking.pure_pursuit_tracker:main',
         ],
     },

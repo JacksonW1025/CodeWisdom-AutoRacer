@@ -18,6 +18,7 @@ REQUIRED_CASES = [
     "right_arc_r2m",
     "s_curve",
     "stop_at_end",
+    "goal_2m_2m",
 ]
 
 
@@ -58,6 +59,14 @@ def signed_area(poses: list[dict[str, Any]]) -> float:
     return area * 0.5
 
 
+def validate_terminal_distances(expected: dict[str, Any]) -> None:
+    stop_distance = require_number(expected.get("stop_distance_m", 0.05), "expected.stop_distance_m")
+    acceptance_distance = require_number(expected.get("acceptance_distance_m", 0.10), "expected.acceptance_distance_m")
+    require(stop_distance <= 0.05 + 1e-6, "controller stop distance must be <= 0.05 m")
+    require(acceptance_distance >= stop_distance, "acceptance distance must not be tighter than control stop distance")
+    require(acceptance_distance <= 0.10 + 1e-6, "real-car acceptance distance must be <= 0.10 m")
+
+
 def load_fixture(path: Path) -> dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
@@ -90,7 +99,10 @@ def validate_common(case: str, fixture: dict[str, Any]) -> list[dict[str, Any]]:
     return poses
 
 
-def validate_straight(poses: list[dict[str, Any]]) -> None:
+def validate_straight(fixture: dict[str, Any], poses: list[dict[str, Any]]) -> None:
+    expected = fixture.get("expected", {})
+    require(isinstance(expected, dict), "straight fixture must include expected object")
+    validate_terminal_distances(expected)
     require(math.isclose(path_length(poses), 2.0, abs_tol=0.05), "straight_2m length must be about 2 m")
     require(max(abs(float(pose["y"])) for pose in poses) <= 1e-6, "straight_2m y must stay zero")
     require(max(abs(float(pose["yaw_rad"])) for pose in poses) <= 1e-6, "straight_2m yaw must stay zero")
@@ -120,7 +132,28 @@ def validate_stop_at_end(fixture: dict[str, Any], poses: list[dict[str, Any]]) -
     require(fixture.get("stop_at_end") is True, "stop_at_end fixture must require terminal stop")
     terminal_speed = require_number(fixture.get("terminal_speed_mps"), "terminal_speed_mps")
     require(math.isclose(terminal_speed, 0.0, abs_tol=1e-6), "terminal_speed_mps must be 0")
+    expected = fixture.get("expected", {})
+    require(isinstance(expected, dict), "stop_at_end fixture must include expected object")
+    validate_terminal_distances(expected)
     require(path_length(poses) >= 1.4, "stop_at_end path length too short")
+
+
+def validate_goal_2m_2m(fixture: dict[str, Any], poses: list[dict[str, Any]]) -> None:
+    require(fixture.get("stop_at_end") is True, "goal fixture must require terminal stop")
+    expected = fixture.get("expected", {})
+    require(isinstance(expected, dict), "goal fixture must include expected object")
+    goal_x = require_number(expected.get("goal_x_m"), "expected.goal_x_m")
+    goal_y = require_number(expected.get("goal_y_m"), "expected.goal_y_m")
+    validate_terminal_distances(expected)
+    require(math.isclose(float(poses[0]["x"]), 0.0, abs_tol=1e-6), "goal path must start at x=0")
+    require(math.isclose(float(poses[0]["y"]), 0.0, abs_tol=1e-6), "goal path must start at y=0")
+    require(math.isclose(float(poses[-1]["x"]), goal_x, abs_tol=0.02), "goal path final x mismatch")
+    require(math.isclose(float(poses[-1]["y"]), goal_y, abs_tol=0.02), "goal path final y mismatch")
+    require(path_length(poses) >= 2.7, "goal path length must be about sqrt(8) m")
+    require(max(float(pose["x"]) for pose in poses) <= goal_x + 0.02, "goal path x overshoots target")
+    require(max(float(pose["y"]) for pose in poses) <= goal_y + 0.02, "goal path y overshoots target")
+    require(all(float(pose["x"]) >= -1e-6 and float(pose["y"]) >= -1e-6 for pose in poses),
+            "goal path must remain in positive quadrant")
 
 
 def validate_case(case: str, fixture_dir: Path) -> None:
@@ -130,7 +163,7 @@ def validate_case(case: str, fixture_dir: Path) -> None:
     poses = validate_common(case, fixture)
 
     if case == "straight_2m":
-        validate_straight(poses)
+        validate_straight(fixture, poses)
     elif case == "left_arc_r2m":
         validate_left_arc(poses)
     elif case == "right_arc_r2m":
@@ -139,6 +172,8 @@ def validate_case(case: str, fixture_dir: Path) -> None:
         validate_s_curve(poses)
     elif case == "stop_at_end":
         validate_stop_at_end(fixture, poses)
+    elif case == "goal_2m_2m":
+        validate_goal_2m_2m(fixture, poses)
 
 
 def run_checks(fixture_dir: Path) -> list[CheckResult]:

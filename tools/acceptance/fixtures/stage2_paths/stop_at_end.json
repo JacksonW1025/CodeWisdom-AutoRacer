@@ -11,7 +11,8 @@
   "expected": {
     "steering_sign": "near_zero",
     "max_abs_steering_rad": 0.1,
-    "stop_distance_m": 0.2
+    "stop_distance_m": 0.05,
+    "acceptance_distance_m": 0.1
   },
   "poses": [
     {"x": 0.0, "y": 0.0, "yaw_rad": 0.0},

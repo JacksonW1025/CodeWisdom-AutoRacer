@@ -39,8 +39,8 @@ STATUS_STEERING_IS_MEASURED = 1 << 9
 
 @dataclass(frozen=True)
 class CommandLimits:
-    max_auto_speed_mps: float = 0.50
-    max_reverse_speed_mps: float = 0.30
+    max_auto_speed_mps: float = 1.00
+    max_reverse_speed_mps: float = 0.60
     max_steering_angle_rad: float = 0.262
 
 
@@ -248,6 +248,12 @@ def check_protocol_downlink() -> None:
     require(read_i16(frame, 7) == 0, "reserved field must be zero")
     require(frame[9] == checksum(frame[:9]), "command BCC mismatch")
 
+    forward_limited = build_command_frame(1.2, 0.0, enable=True)
+    require(read_i16(forward_limited, 3) == 1000, "forward speed must clamp to 1.00 m/s")
+
+    reverse_limited = build_command_frame(-0.8, 0.0, enable=True)
+    require(read_i16(reverse_limited, 3) == -600, "reverse speed must clamp to -0.60 m/s")
+
     disabled = build_command_frame(0.2, 0.1, enable=False)
     require(read_i16(disabled, 3) == 0, "disabled command must force speed to zero")
 
@@ -260,11 +266,11 @@ def check_protocol_downlink() -> None:
     require(read_i16(estop, 3) == 0, "estop must force speed to zero")
 
     saturated = build_command_frame(9.0, 9.0, enable=True)
-    require(read_i16(saturated, 3) == 500, "forward speed clamp mismatch")
+    require(read_i16(saturated, 3) == 1000, "forward speed clamp mismatch")
     require(read_i16(saturated, 5) == 262, "steering clamp mismatch")
 
     reverse = build_command_frame(-9.0, -9.0, enable=True)
-    require(read_i16(reverse, 3) == -300, "reverse speed clamp mismatch")
+    require(read_i16(reverse, 3) == -600, "reverse speed clamp mismatch")
     require(read_i16(reverse, 5) == -262, "negative steering clamp mismatch")
 
 
@@ -367,12 +373,26 @@ def check_launch_contract(repo_root: Path) -> None:
             "stage1 fixed launch must default use_ekf true")
 
 
+def check_serial_resilience_contract(repo_root: Path) -> None:
+    source = repo_root / "src" / "turn_on_autoracer_robot" / "src" / "ackermann_chassis_bridge.cpp"
+    source_text = source.read_text(encoding="utf-8")
+
+    require("serial_reconnect_period_ms" in source_text, "bridge must expose serial reconnect period")
+    require("maybe_reopen_serial" in source_text, "bridge must retry opening a lost serial port")
+    require("handle_serial_exception" in source_text, "bridge must centralize serial exception handling")
+    require("closing port and will retry" in source_text, "serial failures must close the port and retry later")
+    require("serial::SerialException" in source_text, "bridge must catch serial::SerialException")
+    require("serial::PortNotOpenedException" in source_text, "bridge must catch PortNotOpenedException")
+    require("rx_frame_.clear()" in source_text, "serial failure must clear any partial telemetry frame")
+
+
 def run_offline_checks(repo_root: Path) -> list[CheckResult]:
     checks = [
         ("protocol_downlink", lambda: check_protocol_downlink()),
         ("telemetry_uplink", lambda: check_telemetry_uplink()),
         ("wheel_odom_gate", lambda: check_counts_per_meter_gate(repo_root)),
         ("launch_contract", lambda: check_launch_contract(repo_root)),
+        ("serial_resilience_contract", lambda: check_serial_resilience_contract(repo_root)),
     ]
     return run_checks(checks)
 

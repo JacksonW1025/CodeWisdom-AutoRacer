@@ -33,11 +33,16 @@ rosbag 路径:
 | --- | --- |
 | tracker | Pure Pursuit |
 | `lookahead_m` | 0.60 |
-| `goal_tolerance_m` | 0.20 |
+| `goal_tolerance_m` | 0.05 |
+| 实车验收窗口 | 0.10 |
 | `control_rate_hz` | 20 |
 | `allow_reverse` | false |
 | `wheelbase_m` | 0.60 |
 | `max_steering_angle_rad` | 0.262 |
+| `target_speed_mps` |  |
+| `max_target_speed_mps` | 默认 0.25；现场批准后最高 1.00 |
+| STM32 自动命令限幅 | 前进 1.00 m/s；倒车 0.60 m/s |
+| 霍尔超速保护 | 5.0 m/s 触发；4.5 m/s 释放；不作为测试目标速度 |
 
 ## Diagnostics 字段记录
 

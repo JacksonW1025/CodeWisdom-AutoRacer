@@ -7,6 +7,7 @@ import math
 from pathlib import Path
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path as PathMsg
@@ -76,9 +77,12 @@ def main() -> None:
     node = TestPathPublisher()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

@@ -117,9 +117,7 @@ public:
     ~AckermannChassisBridge() override
     {
         send_stop();
-        if (serial_.isOpen()) {
-            serial_.close();
-        }
+        close_serial_safely();
     }
 
 private:
@@ -132,11 +130,12 @@ private:
         declare_parameter<double>("wheelbase_m", 0.60);
         declare_parameter<double>("max_steering_angle_rad", 0.262);
         declare_parameter<double>("min_turn_speed_mps", 0.05);
-        declare_parameter<double>("max_auto_speed_mps", 0.50);
-        declare_parameter<double>("max_reverse_speed_mps", 0.30);
+        declare_parameter<double>("max_auto_speed_mps", 1.00);
+        declare_parameter<double>("max_reverse_speed_mps", 0.60);
         declare_parameter<double>("counts_per_meter", 0.0);
         declare_parameter<bool>("publish_power_voltage", true);
         declare_parameter<int>("serial_poll_period_ms", 5);
+        declare_parameter<int>("serial_reconnect_period_ms", 1000);
     }
 
     void load_parameters()
@@ -153,6 +152,7 @@ private:
         get_parameter("counts_per_meter", counts_per_meter_);
         get_parameter("publish_power_voltage", publish_power_voltage_);
         get_parameter("serial_poll_period_ms", serial_poll_period_ms_);
+        get_parameter("serial_reconnect_period_ms", serial_reconnect_period_ms_);
     }
 
     void setup_ros()
@@ -177,17 +177,28 @@ private:
         serial_timer_ = create_wall_timer(period, std::bind(&AckermannChassisBridge::read_serial, this));
     }
 
-    void open_serial()
+    bool open_serial()
     {
+        if (serial_.isOpen()) {
+            return true;
+        }
+
         try {
             serial_.setPort(usart_port_name_);
             serial_.setBaudrate(static_cast<uint32_t>(serial_baud_rate_));
             serial::Timeout timeout = serial::Timeout::simpleTimeout(20);
             serial_.setTimeout(timeout);
             serial_.open();
-        } catch (const serial::IOException &) {
-            RCLCPP_ERROR(get_logger(), "Failed to open serial port %s", usart_port_name_.c_str());
-            return;
+        } catch (const std::exception &exc) {
+            RCLCPP_ERROR_THROTTLE(
+                get_logger(),
+                *get_clock(),
+                2000,
+                "Failed to open serial port %s: %s",
+                usart_port_name_.c_str(),
+                exc.what());
+            close_serial_safely();
+            return false;
         }
 
         if (serial_.isOpen()) {
@@ -197,6 +208,54 @@ private:
                 usart_port_name_.c_str(),
                 serial_baud_rate_);
         }
+        return serial_.isOpen();
+    }
+
+    void maybe_reopen_serial()
+    {
+        if (serial_.isOpen()) {
+            return;
+        }
+
+        const auto now_steady = std::chrono::steady_clock::now();
+        const auto reconnect_period =
+            std::chrono::milliseconds(std::max(100, serial_reconnect_period_ms_));
+        if (last_serial_reconnect_attempt_.time_since_epoch().count() != 0 &&
+            now_steady - last_serial_reconnect_attempt_ < reconnect_period) {
+            return;
+        }
+
+        last_serial_reconnect_attempt_ = now_steady;
+        open_serial();
+    }
+
+    void close_serial_safely()
+    {
+        try {
+            if (serial_.isOpen()) {
+                serial_.close();
+            }
+        } catch (const std::exception &exc) {
+            RCLCPP_WARN_THROTTLE(
+                get_logger(),
+                *get_clock(),
+                2000,
+                "Failed to close serial port cleanly: %s",
+                exc.what());
+        }
+    }
+
+    void handle_serial_exception(const char *operation, const std::exception &exc)
+    {
+        RCLCPP_ERROR_THROTTLE(
+            get_logger(),
+            *get_clock(),
+            2000,
+            "Serial %s failed: %s; closing port and will retry",
+            operation,
+            exc.what());
+        rx_frame_.clear();
+        close_serial_safely();
     }
 
     void on_cmd_vel(const geometry_msgs::msg::Twist::SharedPtr msg)
@@ -283,20 +342,28 @@ private:
     void write_serial(const std::array<uint8_t, kCommandSize> &frame)
     {
         if (!serial_.isOpen()) {
+            maybe_reopen_serial();
             RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "Serial port is not open");
             return;
         }
 
         try {
             serial_.write(frame.data(), frame.size());
-        } catch (const serial::IOException &) {
-            RCLCPP_ERROR(get_logger(), "Failed to write Ackermann command");
+        } catch (const serial::IOException &exc) {
+            handle_serial_exception("write Ackermann command", exc);
+        } catch (const serial::SerialException &exc) {
+            handle_serial_exception("write Ackermann command", exc);
+        } catch (const serial::PortNotOpenedException &exc) {
+            handle_serial_exception("write Ackermann command", exc);
+        } catch (const std::exception &exc) {
+            handle_serial_exception("write Ackermann command", exc);
         }
     }
 
     void read_serial()
     {
         if (!serial_.isOpen()) {
+            maybe_reopen_serial();
             return;
         }
 
@@ -310,8 +377,14 @@ private:
             for (size_t i = 0; i < read_count; ++i) {
                 push_rx_byte(data[i]);
             }
-        } catch (const serial::IOException &) {
-            RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), 2000, "Failed to read serial data");
+        } catch (const serial::IOException &exc) {
+            handle_serial_exception("read serial data", exc);
+        } catch (const serial::SerialException &exc) {
+            handle_serial_exception("read serial data", exc);
+        } catch (const serial::PortNotOpenedException &exc) {
+            handle_serial_exception("read serial data", exc);
+        } catch (const std::exception &exc) {
+            handle_serial_exception("read serial data", exc);
         }
     }
 
@@ -466,16 +539,18 @@ private:
     std::string robot_frame_id_;
     int serial_baud_rate_ = 115200;
     int serial_poll_period_ms_ = 5;
+    int serial_reconnect_period_ms_ = 1000;
     bool publish_power_voltage_ = true;
     double wheelbase_m_ = 0.60;
     double max_steering_angle_rad_ = 0.262;
     double min_turn_speed_mps_ = 0.05;
-    double max_auto_speed_mps_ = 0.50;
-    double max_reverse_speed_mps_ = 0.30;
+    double max_auto_speed_mps_ = 1.00;
+    double max_reverse_speed_mps_ = 0.60;
     double counts_per_meter_ = 0.0;
     double x_m_ = 0.0;
     double y_m_ = 0.0;
     double yaw_rad_ = 0.0;
+    std::chrono::steady_clock::time_point last_serial_reconnect_attempt_{};
 };
 
 int main(int argc, char **argv)

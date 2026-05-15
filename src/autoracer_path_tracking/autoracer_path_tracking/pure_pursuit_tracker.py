@@ -8,6 +8,7 @@ import math
 import rclpy
 from autoracer_interfaces.msg import AckermannChassisCommand, ChassisState, PathTrackingDiagnostics
 from nav_msgs.msg import Odometry, Path as PathMsg
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
 from .pure_pursuit import ControllerConfig, Pose2D, PurePursuitController
@@ -26,7 +27,7 @@ class PurePursuitTracker(Node):
         self.declare_parameter('wheelbase_m', 0.60)
         self.declare_parameter('max_steering_angle_rad', 0.262)
         self.declare_parameter('lookahead_m', 0.60)
-        self.declare_parameter('goal_tolerance_m', 0.20)
+        self.declare_parameter('goal_tolerance_m', 0.05)
         self.declare_parameter('target_speed_mps', 0.20)
         self.declare_parameter('max_target_speed_mps', 0.25)
         self.declare_parameter('control_rate_hz', 20.0)
@@ -124,9 +125,12 @@ def main() -> None:
     node = PurePursuitTracker()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

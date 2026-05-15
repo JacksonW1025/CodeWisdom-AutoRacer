@@ -15,6 +15,7 @@ REQUIRED_CASES = [
     "right_arc_r2m",
     "s_curve",
     "stop_at_end",
+    "goal_2m_2m",
 ]
 
 
@@ -36,11 +37,12 @@ def import_tracker(repo_root: Path):
     from autoracer_path_tracking.pure_pursuit import (  # noqa: PLC0415
         ControllerConfig,
         PurePursuitController,
+        Pose2D,
         load_fixture,
         poses_from_fixture,
     )
 
-    return ControllerConfig, PurePursuitController, load_fixture, poses_from_fixture
+    return ControllerConfig, PurePursuitController, Pose2D, load_fixture, poses_from_fixture
 
 
 def require(condition: bool, detail: str) -> None:
@@ -59,14 +61,14 @@ def has_positive_then_negative(values: list[float]) -> bool:
 
 
 def validate_case(case: str, fixture_dir: Path, repo_root: Path) -> None:
-    ControllerConfig, PurePursuitController, load_fixture, poses_from_fixture = import_tracker(repo_root)
+    ControllerConfig, PurePursuitController, Pose2D, load_fixture, poses_from_fixture = import_tracker(repo_root)
     fixture = load_fixture(fixture_dir / f"{case}.json")
     poses = poses_from_fixture(fixture)
     expected = fixture.get("expected", {})
     config = ControllerConfig(
         target_speed_mps=float(fixture.get("target_speed_mps", 0.2)),
         lookahead_m=0.60,
-        goal_tolerance_m=float(expected.get("stop_distance_m", 0.20)),
+        goal_tolerance_m=float(expected.get("stop_distance_m", 0.05)),
         wheelbase_m=0.60,
         max_steering_angle_rad=0.262,
         max_target_speed_mps=0.25,
@@ -89,15 +91,25 @@ def validate_case(case: str, fixture_dir: Path, repo_root: Path) -> None:
         max_abs = float(expected.get("max_abs_steering_rad", 0.1))
         require(max((abs(value) for value in steering_values), default=0.0) <= max_abs,
                 f"straight/stop steering exceeded {max_abs:.3f} rad")
+        if case == "straight_2m":
+            before_stop = controller.compute(Pose2D(1.90, 0.0, 0.0), 0.0)
+            inside_stop = controller.compute(Pose2D(1.96, 0.0, 0.0), 0.0)
+            require(not before_stop.stop_commanded, "straight_2m controller must not stop at the 0.10 m acceptance boundary")
+            require(before_stop.remaining_distance_m > float(expected["stop_distance_m"]),
+                    "straight_2m remaining distance must use continuous path progress")
+            require(inside_stop.stop_commanded, "straight_2m controller must stop inside the 0.05 m terminal window")
     elif case == "left_arc_r2m":
         require(max(steering_values, default=0.0) > 0.02, "left arc did not command positive steering")
     elif case == "right_arc_r2m":
         require(min(steering_values, default=0.0) < -0.02, "right arc did not command negative steering")
     elif case == "s_curve":
         require(has_positive_then_negative(steering_values), "s_curve did not command positive then negative steering")
+    elif case == "goal_2m_2m":
+        require(max(steering_values, default=0.0) > 0.02, "goal_2m_2m did not initially command positive steering")
+        require(poses[-1].x == 2.0 and poses[-1].y == 2.0, "goal_2m_2m final pose must be (2,2)")
 
     final_output = outputs[-1]
-    stop_distance = float(expected.get("stop_distance_m", 0.20))
+    stop_distance = float(expected.get("stop_distance_m", 0.05))
     require(final_output.remaining_distance_m <= stop_distance + 1e-6, "final fake odom was not within stop distance")
     require(final_output.stop_commanded, "final output did not command stop")
     require(abs(final_output.speed_mps) <= 1e-6, "final stop speed was not zero")

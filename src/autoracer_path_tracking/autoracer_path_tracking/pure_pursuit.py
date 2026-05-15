@@ -21,7 +21,7 @@ class ControllerConfig:
     wheelbase_m: float = 0.60
     max_steering_angle_rad: float = 0.262
     lookahead_m: float = 0.60
-    goal_tolerance_m: float = 0.20
+    goal_tolerance_m: float = 0.05
     target_speed_mps: float = 0.20
     max_target_speed_mps: float = 0.25
     allow_reverse: bool = False
@@ -83,15 +83,14 @@ class PurePursuitController:
         if not self.poses:
             return self._stop_output(current, 0, 0.0, 0.0, 0.0)
 
-        nearest_index = self._nearest_index(current)
-        remaining = max(0.0, self.distances[-1] - self.distances[nearest_index])
-        lateral_error = self._signed_lateral_error(current, nearest_index)
-        heading_error = normalize_angle(self.poses[nearest_index].yaw - current.yaw)
+        progress_m, nearest_index, lateral_error, path_yaw = self._project_progress(current)
+        remaining = max(0.0, self.distances[-1] - progress_m)
+        heading_error = normalize_angle(path_yaw - current.yaw)
 
         if remaining <= self.config.goal_tolerance_m:
             return self._stop_output(current, nearest_index, remaining, lateral_error, heading_error)
 
-        target_distance = min(self.distances[-1], self.distances[nearest_index] + self.config.lookahead_m)
+        target_distance = min(self.distances[-1], progress_m + self.config.lookahead_m)
         target_index, target_pose = self._interpolate_at_distance(target_distance)
         local_x, local_y = self._to_local(current, target_pose)
         lookahead = max(0.001, math.hypot(local_x, local_y))
@@ -157,6 +156,39 @@ class PurePursuitController:
             key=lambda index: math.hypot(self.poses[index].x - current.x, self.poses[index].y - current.y),
         )
 
+    def _project_progress(self, current: Pose2D) -> tuple[float, int, float, float]:
+        if len(self.poses) < 2:
+            return 0.0, 0, 0.0, self.poses[0].yaw if self.poses else 0.0
+
+        best: tuple[float, float, int, float, float] | None = None
+        for index, (start, end) in enumerate(zip(self.poses, self.poses[1:])):
+            segment_x = end.x - start.x
+            segment_y = end.y - start.y
+            segment_len_sq = segment_x * segment_x + segment_y * segment_y
+            if segment_len_sq <= 1e-12:
+                continue
+
+            t = ((current.x - start.x) * segment_x + (current.y - start.y) * segment_y) / segment_len_sq
+            clamped_t = max(0.0, min(1.0, t))
+            projected_x = start.x + segment_x * clamped_t
+            projected_y = start.y + segment_y * clamped_t
+            distance_sq = (current.x - projected_x) ** 2 + (current.y - projected_y) ** 2
+            segment_len = math.sqrt(segment_len_sq)
+            progress_m = self.distances[index] + clamped_t * segment_len
+            lateral_error = ((current.x - start.x) * segment_y - (current.y - start.y) * segment_x) / segment_len
+            path_yaw = math.atan2(segment_y, segment_x)
+
+            if best is None or distance_sq < best[0]:
+                nearest_index = index if clamped_t < 0.5 else index + 1
+                best = (distance_sq, progress_m, nearest_index, lateral_error, path_yaw)
+
+        if best is None:
+            nearest_index = self._nearest_index(current)
+            return self.distances[nearest_index], nearest_index, 0.0, self.poses[nearest_index].yaw
+
+        _, progress_m, nearest_index, lateral_error, path_yaw = best
+        return progress_m, nearest_index, lateral_error, path_yaw
+
     def _interpolate_at_distance(self, distance_m: float) -> tuple[int, Pose2D]:
         if distance_m <= 0.0:
             return 0, self.poses[0]
@@ -185,20 +217,3 @@ class PurePursuitController:
         cos_yaw = math.cos(current.yaw)
         sin_yaw = math.sin(current.yaw)
         return cos_yaw * dx + sin_yaw * dy, -sin_yaw * dx + cos_yaw * dy
-
-    def _signed_lateral_error(self, current: Pose2D, nearest_index: int) -> float:
-        if len(self.poses) < 2:
-            return 0.0
-        if nearest_index >= len(self.poses) - 1:
-            start = self.poses[nearest_index - 1]
-            end = self.poses[nearest_index]
-        else:
-            start = self.poses[nearest_index]
-            end = self.poses[nearest_index + 1]
-
-        segment_x = end.x - start.x
-        segment_y = end.y - start.y
-        segment_length = math.hypot(segment_x, segment_y)
-        if segment_length <= 1e-9:
-            return 0.0
-        return ((current.x - start.x) * segment_y - (current.y - start.y) * segment_x) / segment_length
