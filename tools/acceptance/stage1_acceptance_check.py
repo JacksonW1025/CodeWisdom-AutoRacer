@@ -349,9 +349,11 @@ def check_launch_contract(repo_root: Path) -> None:
     launch = repo_root / "src" / "turn_on_autoracer_robot" / "launch" / "ackermann_chassis.launch.py"
     ekf_config = repo_root / "src" / "turn_on_autoracer_robot" / "config" / "ackermann_ekf.yaml"
     package_xml = repo_root / "src" / "turn_on_autoracer_robot" / "package.xml"
+    fixed_launch = repo_root / "src" / "autoracer_bringup" / "launch" / "stage1_chassis.launch.py"
     launch_text = launch.read_text(encoding="utf-8")
     ekf_text = ekf_config.read_text(encoding="utf-8")
     package_text = package_xml.read_text(encoding="utf-8")
+    fixed_launch_text = fixed_launch.read_text(encoding="utf-8")
 
     require("ackermann_chassis_bridge" in launch_text, "launch must start ackermann_chassis_bridge")
     require("robot_localization" in launch_text and "ekf_node" in launch_text, "launch must define EKF node")
@@ -360,6 +362,9 @@ def check_launch_contract(repo_root: Path) -> None:
     require("serial_baud_rate" in launch_text and "115200" in launch_text, "launch must expose 115200 serial baud")
     require("wheel_odom" in ekf_text and "/imu/data" in ekf_text, "EKF config must consume wheel_odom and /imu/data")
     require("<exec_depend>robot_localization</exec_depend>" in package_text, "package must declare robot_localization runtime dependency")
+    require("ackermann_chassis.launch.py" in fixed_launch_text, "stage1 fixed launch must include Ackermann chassis launch")
+    require("default_value='true'" in fixed_launch_text and "'use_ekf'" in fixed_launch_text,
+            "stage1 fixed launch must default use_ekf true")
 
 
 def run_offline_checks(repo_root: Path) -> list[CheckResult]:

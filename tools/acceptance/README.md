@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | `stage1_acceptance_check.py` | 阶段 1 最小验收检查。offline 模式检查协议帧、telemetry 解析、`counts_per_meter` 门禁和 launch 契约；live 模式只检查已运行 topic 和类型。 | 不会 |
 | `stage2_path_fixture_check.py` | 阶段 2 path fixture 静态检查。确认 `straight_2m`、左右圆弧、S 弯和到点停车 fixture 格式正确。 | 不会 |
+| `stage2_tracker_fake_odom_check.py` | 阶段 2 tracker 离线检查。用 fixture 和 fake odom 验证 Pure Pursuit 输出方向、限幅、S 弯符号切换和到点停车。 | 不会 |
 | `fixtures/stage2_paths/*.json` | 阶段 2 tracker 的标准输入，语义等价于 `nav_msgs/Path`。 | 本地数据文件 |
 
 未实现工具的状态和启用时机以根仓库 `../docs/阶段路线图.md` 为准，不在本目录重复维护路线图。
@@ -24,7 +25,7 @@ tools/
     README.md
     stage1_acceptance_check.py
     stage2_path_fixture_check.py
-    stage2_tracker_fake_odom_check.py   # 待实现
+    stage2_tracker_fake_odom_check.py
     fixtures/
       stage2_paths/
         straight_2m.json
@@ -64,13 +65,15 @@ python3 tools/acceptance/stage1_acceptance_check.py --mode live --require-odom
 
 ```bash
 python3 tools/acceptance/stage2_path_fixture_check.py
+python3 tools/acceptance/stage2_tracker_fake_odom_check.py
 ```
 
-这些 fixture 是后续 tracker 的固定输入样例；fixture 检查只读取本地 JSON 文件并校验路径几何。
+fixture 检查只读取本地 JSON 文件并校验路径几何。fake-odom 检查调用 `autoracer_path_tracking`
+里的 Pure Pursuit 控制逻辑，覆盖直线、左右圆弧、S 弯和到点停车的软件契约。
 
 阶段 2 tracker 实现契约：
 
 - test path publisher 发布 `/path_tracking/path`，类型 `nav_msgs/msg/Path`。
 - Pure Pursuit tracker 订阅 `/path_tracking/path` 和 `/odom`，发布 `/ackermann_cmd`。
 - diagnostics publisher 发布 `/path_tracking/diagnostics`，类型 `autoracer_interfaces/msg/PathTrackingDiagnostics`。
-- `stage2_tracker_fake_odom_check.py` 实现后，必须使用本目录 fixture 检查转角方向、限幅、S 弯符号切换和到点停车。
+- `stage2_tracker_fake_odom_check.py` 使用本目录 fixture 检查转角方向、限幅、S 弯符号切换和到点停车。

@@ -9,7 +9,7 @@
 
   实测参数 (2026-01-29):
     车辆: 长0.85m, 宽0.50m, 高0.40m
-    轴距: 0.54m (前轴距车头0.15m, 后轴距车尾0.16m)
+    轴距: 0.60m (前轴距车头0.15m, 后轴距车尾0.16m)
     轮距: 0.48m
     轮径: 0.11m (半径)
     最大转向角: 0.393 rad (≈22.5°)
@@ -25,7 +25,7 @@
   <xacro:property name="chassis_height" value="0.20"/>
 
   <!-- Ackermann 运动学参数 -->
-  <xacro:property name="wheelbase" value="0.54"/>
+  <xacro:property name="wheelbase" value="0.60"/>
   <xacro:property name="track_width" value="0.48"/>
   <xacro:property name="wheel_radius" value="0.11"/>
   <xacro:property name="wheel_width" value="0.08"/>

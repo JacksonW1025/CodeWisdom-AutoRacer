@@ -129,7 +129,7 @@ private:
         declare_parameter<int>("serial_baud_rate", 115200);
         declare_parameter<std::string>("odom_frame_id", "odom");
         declare_parameter<std::string>("robot_frame_id", "base_footprint");
-        declare_parameter<double>("wheelbase_m", 0.54);
+        declare_parameter<double>("wheelbase_m", 0.60);
         declare_parameter<double>("max_steering_angle_rad", 0.393);
         declare_parameter<double>("min_turn_speed_mps", 0.05);
         declare_parameter<double>("max_auto_speed_mps", 0.50);
@@ -467,7 +467,7 @@ private:
     int serial_baud_rate_ = 115200;
     int serial_poll_period_ms_ = 5;
     bool publish_power_voltage_ = true;
-    double wheelbase_m_ = 0.54;
+    double wheelbase_m_ = 0.60;
     double max_steering_angle_rad_ = 0.393;
     double min_turn_speed_mps_ = 0.05;
     double max_auto_speed_mps_ = 0.50;

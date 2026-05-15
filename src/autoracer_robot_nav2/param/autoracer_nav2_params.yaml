@@ -1,6 +1,6 @@
 # Nav2 导航参数 - AutoRacer Ackermann 转向专用配置
 # 参考: wheeltec_robot_nav2/param/wheeltec_params/param_top_akm_bs.yaml
-# AutoRacer 参数: 轴距 0.54m, 轮距 0.48m, 最小转弯半径 ~1.45m
+# AutoRacer 参数: 轴距 0.60m, 轮距 0.48m, 最小转弯半径 ~1.45m
 # 车身尺寸: 0.85m × 0.50m, base_link 在后轴中心
 
 # === AMCL 自适应蒙特卡洛定位 ===

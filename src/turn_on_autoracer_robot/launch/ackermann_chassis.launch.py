@@ -58,6 +58,14 @@ def generate_launch_description():
         ],
     )
 
+    imu_static_tf = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_to_gyro_link_static_tf',
+        output='screen',
+        arguments=['--frame-id', 'base_footprint', '--child-frame-id', 'gyro_link'],
+    )
+
     ekf = Node(
         package='robot_localization',
         executable='ekf_node',
@@ -77,6 +85,7 @@ def generate_launch_description():
         baud_rate_arg,
         counts_per_meter_arg,
         use_ekf_arg,
+        imu_static_tf,
         bridge,
         ekf_group,
     ])

@@ -16,7 +16,7 @@ Following ROS REP-103:
 
 | Parameter | Value | Unit | Description |
 |-----------|-------|------|-------------|
-| `wheelbase` | 0.54 | m | Front-to-rear axle distance |
+| `wheelbase` | 0.60 | m | Front-to-rear axle distance |
 | `track_width` | 0.48 | m | Left-to-right wheel distance |
 | `wheel_radius` | 0.11 | m | Wheel radius |
 | `wheel_width` | 0.08 | m | Wheel width |
@@ -71,8 +71,8 @@ Relative to `base_link`:
 |-------|-------|-------|-------|------------|
 | Rear Left | 0.00 | +0.24 | 0.00 | continuous |
 | Rear Right | 0.00 | -0.24 | 0.00 | continuous |
-| Front Left Steering | +0.54 | +0.24 | 0.00 | revolute (±22.5°) |
-| Front Right Steering | +0.54 | -0.24 | 0.00 | revolute (±22.5°) |
+| Front Left Steering | +0.60 | +0.24 | 0.00 | revolute (±22.5°) |
+| Front Right Steering | +0.60 | -0.24 | 0.00 | revolute (±22.5°) |
 
 ## TF Frame Hierarchy
 
@@ -97,7 +97,7 @@ odom
                     Front
                       ↑ X
             +---------+----------+
-            |    ○         ○     |  ← Front wheels (X=+0.54m)
+            |    ○         ○     |  ← Front wheels (X=+0.60m)
             |                    |
             |      [ZED X]       |  ← ZED camera (X=+0.34m)
             |                    |

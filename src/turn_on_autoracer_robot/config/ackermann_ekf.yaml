@@ -17,7 +17,9 @@ ekf_filter_node:
     world_frame: odom
 
     odom0: /wheel_odom
-    odom0_config: [false, false, false,
+    # Fuse wheel odom x/y to keep the canonical odom pose anchored when the car
+    # is stationary. Heading still comes primarily from the IMU.
+    odom0_config: [true, true, false,
                    false, false, false,
                    true, false, false,
                    false, false, true,
