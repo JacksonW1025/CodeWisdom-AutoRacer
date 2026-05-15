@@ -19,7 +19,7 @@ class Pose2D:
 @dataclass(frozen=True)
 class ControllerConfig:
     wheelbase_m: float = 0.60
-    max_steering_angle_rad: float = 0.393
+    max_steering_angle_rad: float = 0.262
     lookahead_m: float = 0.60
     goal_tolerance_m: float = 0.20
     target_speed_mps: float = 0.20

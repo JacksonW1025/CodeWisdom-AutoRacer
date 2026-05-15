@@ -2,7 +2,8 @@
 
 This document records the extrinsic (geometric) parameters of the AutoRacer vehicle, extracted from the URDF model (`urdf/autoracer.urdf.xacro`).
 
-Measured: 2026-01-29
+Measured: 2026-05-15 calibration update for wheelbase, wheel diameter, and steering limits.
+Track width, body outline, and sensor extrinsics still need physical recheck before final navigation tuning.
 
 ## Coordinate System Convention
 
@@ -10,7 +11,7 @@ Following ROS REP-103:
 - **X** = Forward
 - **Y** = Left
 - **Z** = Up
-- **base_link** = Rear axle center, at axle height (Z=0.11m above ground)
+- **base_link** = Rear axle center, at axle height (Z=0.1175m above ground)
 
 ## Chassis Parameters
 
@@ -18,15 +19,15 @@ Following ROS REP-103:
 |-----------|-------|------|-------------|
 | `wheelbase` | 0.60 | m | Front-to-rear axle distance |
 | `track_width` | 0.48 | m | Left-to-right wheel distance |
-| `wheel_radius` | 0.11 | m | Wheel radius |
+| `wheel_radius` | 0.1175 | m | Wheel radius from confirmed 0.235 m diameter |
 | `wheel_width` | 0.08 | m | Wheel width |
-| `max_steering_angle` | 0.393 | rad | Max steering angle (~22.5°) |
+| `max_steering_angle` | 0.262 | rad | Max steering angle (~15°) |
 | `chassis_length` | 0.85 | m | Vehicle total length |
 | `chassis_width` | 0.50 | m | Vehicle total width |
 | `chassis_height` | 0.20 | m | Chassis box height (URDF visual) |
 | `front_axle_to_front` | 0.15 | m | Front axle to front bumper |
 | `rear_axle_to_rear` | 0.16 | m | Rear axle to rear bumper |
-| `axle_height` | 0.11 | m | Axle center height above ground |
+| `axle_height` | 0.1175 | m | Axle center height above ground |
 
 ## Sensor Extrinsics
 
@@ -71,15 +72,15 @@ Relative to `base_link`:
 |-------|-------|-------|-------|------------|
 | Rear Left | 0.00 | +0.24 | 0.00 | continuous |
 | Rear Right | 0.00 | -0.24 | 0.00 | continuous |
-| Front Left Steering | +0.60 | +0.24 | 0.00 | revolute (±22.5°) |
-| Front Right Steering | +0.60 | -0.24 | 0.00 | revolute (±22.5°) |
+| Front Left Steering | +0.60 | +0.24 | 0.00 | revolute (±15°) |
+| Front Right Steering | +0.60 | -0.24 | 0.00 | revolute (±15°) |
 
 ## TF Frame Hierarchy
 
 ```
 odom
 └── base_footprint (Z=0, ground level)
-    └── base_link (Z=+0.11m, rear axle center)
+    └── base_link (Z=+0.1175m, rear axle center)
         ├── rear_left_wheel_link
         ├── rear_right_wheel_link
         ├── front_left_steering_link

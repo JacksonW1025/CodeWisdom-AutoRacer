@@ -68,7 +68,7 @@ def validate_case(case: str, fixture_dir: Path, repo_root: Path) -> None:
         lookahead_m=0.60,
         goal_tolerance_m=float(expected.get("stop_distance_m", 0.20)),
         wheelbase_m=0.60,
-        max_steering_angle_rad=0.393,
+        max_steering_angle_rad=0.262,
         max_target_speed_mps=0.25,
         allow_reverse=False,
     )

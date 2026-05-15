@@ -1,7 +1,7 @@
 {
   "fixture_version": 1,
   "case": "left_arc_r2m",
-  "description": "Low-speed 2 m radius left arc, about 60 degrees.",
+  "description": "Low-speed 2.5 m radius left arc, about 60 degrees; case name kept for compatibility.",
   "message_semantics": "nav_msgs/Path",
   "frame_id": "odom",
   "target_speed_mps": 0.2,
@@ -10,14 +10,14 @@
   "allow_reverse": false,
   "expected": {
     "steering_sign": "positive",
-    "arc_radius_m": 2.0,
+    "arc_radius_m": 2.5,
     "max_lateral_error_m": 0.35
   },
   "poses": [
     {"x": 0.0, "y": 0.0, "yaw_rad": 0.0},
-    {"x": 0.517638, "y": 0.068148, "yaw_rad": 0.261799},
-    {"x": 1.0, "y": 0.267949, "yaw_rad": 0.523599},
-    {"x": 1.414214, "y": 0.585786, "yaw_rad": 0.785398},
-    {"x": 1.732051, "y": 1.0, "yaw_rad": 1.047198}
+    {"x": 0.647048, "y": 0.085185, "yaw_rad": 0.261799},
+    {"x": 1.25, "y": 0.334936, "yaw_rad": 0.523599},
+    {"x": 1.767767, "y": 0.732233, "yaw_rad": 0.785398},
+    {"x": 2.165064, "y": 1.25, "yaw_rad": 1.047198}
   ]
 }

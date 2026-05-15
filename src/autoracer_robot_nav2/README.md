@@ -53,7 +53,7 @@ ros2 launch autoracer_robot_nav2 navigation.launch.py map:=/path/to/autoracer_ma
 
 | 参数 | 值 | 说明 |
 |------|-----|------|
-| min_turning_radius | 1.45m | 最小转弯半径 |
+| min_turning_radius | 2.24m | 最小转弯半径 |
 | motion_model | Ackermann | MPPI 运动模型 |
 | planner | SmacPlannerHybrid | Reeds-Shepp 曲线 |
 | footprint | 0.85m × 0.50m | 车身轮廓 |

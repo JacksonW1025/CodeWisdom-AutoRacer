@@ -41,7 +41,7 @@ STATUS_STEERING_IS_MEASURED = 1 << 9
 class CommandLimits:
     max_auto_speed_mps: float = 0.50
     max_reverse_speed_mps: float = 0.30
-    max_steering_angle_rad: float = 0.393
+    max_steering_angle_rad: float = 0.262
 
 
 @dataclass
@@ -261,11 +261,11 @@ def check_protocol_downlink() -> None:
 
     saturated = build_command_frame(9.0, 9.0, enable=True)
     require(read_i16(saturated, 3) == 500, "forward speed clamp mismatch")
-    require(read_i16(saturated, 5) == 393, "steering clamp mismatch")
+    require(read_i16(saturated, 5) == 262, "steering clamp mismatch")
 
     reverse = build_command_frame(-9.0, -9.0, enable=True)
     require(read_i16(reverse, 3) == -300, "reverse speed clamp mismatch")
-    require(read_i16(reverse, 5) == -393, "negative steering clamp mismatch")
+    require(read_i16(reverse, 5) == -262, "negative steering clamp mismatch")
 
 
 def check_telemetry_uplink() -> None:

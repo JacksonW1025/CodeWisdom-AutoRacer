@@ -37,7 +37,7 @@ rosbag 路径:
 | `control_rate_hz` | 20 |
 | `allow_reverse` | false |
 | `wheelbase_m` | 0.60 |
-| `max_steering_angle_rad` | 0.393 |
+| `max_steering_angle_rad` | 0.262 |
 
 ## Diagnostics 字段记录
 

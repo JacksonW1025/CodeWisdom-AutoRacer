@@ -59,7 +59,7 @@ def generate_launch_description():
                 'goal_tolerance_m': ParameterValue(LaunchConfiguration('goal_tolerance_m'), value_type=float),
                 'control_rate_hz': ParameterValue(LaunchConfiguration('control_rate_hz'), value_type=float),
                 'wheelbase_m': 0.60,
-                'max_steering_angle_rad': 0.393,
+                'max_steering_angle_rad': 0.262,
                 'max_target_speed_mps': 0.25,
                 'allow_reverse': False,
             }],

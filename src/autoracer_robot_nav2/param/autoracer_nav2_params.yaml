@@ -1,6 +1,6 @@
 # Nav2 导航参数 - AutoRacer Ackermann 转向专用配置
 # 参考: wheeltec_robot_nav2/param/wheeltec_params/param_top_akm_bs.yaml
-# AutoRacer 参数: 轴距 0.60m, 轮距 0.48m, 最小转弯半径 ~1.45m
+# AutoRacer 参数: 轴距 0.60m, 轮距 0.48m, 最小转弯半径 ~2.24m
 # 车身尺寸: 0.85m × 0.50m, base_link 在后轴中心
 
 # === AMCL 自适应蒙特卡洛定位 ===
@@ -131,7 +131,7 @@ controller_server:
 
       # Ackermann 转弯约束
       AckermannConstraints:
-        min_turning_r: 1.45       # 最小转弯半径（米），由轴距和最大转向角计算
+        min_turning_r: 2.24       # 最小转弯半径（米），由轴距 0.60m 和最大转向角 15° 计算
 
       # MPPI 评价函数
       critics: ["ConstraintCritic", "ObstaclesCritic", "GoalCritic", "GoalAngleCritic", "PathAlignCritic", "PathFollowCritic", "PathAngleCritic", "PreferForwardCritic"]
@@ -328,7 +328,7 @@ planner_server:
       angle_quantization_bins: 72             # 5° 角度分辨率
       analytic_expansion_ratio: 3.5
       analytic_expansion_max_cost: 200.0
-      minimum_turning_radius: 1.45            # AutoRacer 最小转弯半径（米）
+      minimum_turning_radius: 2.24            # AutoRacer 最小转弯半径（米）
       reverse_penalty: 1.5                    # 倒退惩罚
       change_penalty: 0.0                     # 方向切换惩罚
       non_straight_penalty: 1.20              # 非直线惩罚

@@ -24,7 +24,7 @@ class PurePursuitTracker(Node):
         super().__init__('pure_pursuit_tracker')
         self.declare_parameter('case_name', '')
         self.declare_parameter('wheelbase_m', 0.60)
-        self.declare_parameter('max_steering_angle_rad', 0.393)
+        self.declare_parameter('max_steering_angle_rad', 0.262)
         self.declare_parameter('lookahead_m', 0.60)
         self.declare_parameter('goal_tolerance_m', 0.20)
         self.declare_parameter('target_speed_mps', 0.20)
