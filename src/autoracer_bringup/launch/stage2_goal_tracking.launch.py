@@ -29,6 +29,7 @@ def generate_launch_description():
         DeclareLaunchArgument('prearm_zero_before_motion', default_value='true', description='Hold zero Ackermann command until chassis auto control is ready'),
         DeclareLaunchArgument('prearm_timeout_s', default_value='3.0', description='Seconds before warning while holding prearm zero command'),
         DeclareLaunchArgument('point_spacing_m', default_value='0.25', description='Generated path point spacing'),
+        DeclareLaunchArgument('lock_start_pose', default_value='true', description='Generate the point-goal path from the initial odom pose and keep it fixed'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(str(stage1_launch)),
             launch_arguments={
@@ -48,6 +49,7 @@ def generate_launch_description():
                 'goal_y_m': ParameterValue(LaunchConfiguration('goal_y_m'), value_type=float),
                 'goal_tolerance_m': ParameterValue(LaunchConfiguration('goal_tolerance_m'), value_type=float),
                 'point_spacing_m': ParameterValue(LaunchConfiguration('point_spacing_m'), value_type=float),
+                'lock_start_pose': ParameterValue(LaunchConfiguration('lock_start_pose'), value_type=bool),
                 'frame_id': 'odom',
                 'use_current_pose': True,
             }],

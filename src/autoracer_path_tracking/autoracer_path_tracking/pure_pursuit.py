@@ -96,7 +96,7 @@ class PurePursuitController:
         lookahead = max(0.001, math.hypot(local_x, local_y))
 
         if local_x < 0.0 and not self.config.allow_reverse:
-            steering = 0.0
+            return self._stop_output(current, target_index, remaining, lateral_error, heading_error)
         else:
             curvature = 2.0 * local_y / (lookahead * lookahead)
             steering = math.atan(self.config.wheelbase_m * curvature)

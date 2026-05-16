@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,6 +17,7 @@ REQUIRED_CASES = [
     "s_curve",
     "stop_at_end",
     "goal_2m_2m",
+    "goal_3m_2m",
 ]
 
 
@@ -104,9 +106,20 @@ def validate_case(case: str, fixture_dir: Path, repo_root: Path) -> None:
         require(min(steering_values, default=0.0) < -0.02, "right arc did not command negative steering")
     elif case == "s_curve":
         require(has_positive_then_negative(steering_values), "s_curve did not command positive then negative steering")
-    elif case == "goal_2m_2m":
-        require(max(steering_values, default=0.0) > 0.02, "goal_2m_2m did not initially command positive steering")
-        require(poses[-1].x == 2.0 and poses[-1].y == 2.0, "goal_2m_2m final pose must be (2,2)")
+    elif case in ("goal_2m_2m", "goal_3m_2m"):
+        require(max(steering_values, default=0.0) > 0.02, f"{case} did not initially command positive steering")
+        expected = fixture.get("expected", {})
+        require(poses[-1].x == float(expected["goal_x_m"]) and poses[-1].y == float(expected["goal_y_m"]),
+                f"{case} final pose must match expected goal")
+        dynamic_backtrack = PurePursuitController(config)
+        dynamic_backtrack.set_path([
+            Pose2D(2.835, 8.217, math.radians(88.3)),
+            Pose2D(2.0, 2.0, math.radians(-97.6)),
+        ], "goal_2m_2m_backtrack")
+        backtrack_output = dynamic_backtrack.compute(Pose2D(2.835, 8.217, math.radians(88.3)), 0.0)
+        require(backtrack_output.stop_commanded, "tracker must stop when a non-reversible target is behind the car")
+        require(abs(backtrack_output.speed_mps) <= 1e-6, "non-reversible backtrack stop speed was not zero")
+        require(backtrack_output.brake, "non-reversible backtrack stop did not set brake")
 
     final_output = outputs[-1]
     stop_distance = float(expected.get("stop_distance_m", 0.05))

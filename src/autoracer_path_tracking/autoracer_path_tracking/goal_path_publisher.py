@@ -26,6 +26,7 @@ class GoalPathPublisher(Node):
         self.declare_parameter('publish_rate_hz', 2.0)
         self.declare_parameter('frame_id', 'odom')
         self.declare_parameter('use_current_pose', True)
+        self.declare_parameter('lock_start_pose', True)
         self.declare_parameter('start_x_m', 0.0)
         self.declare_parameter('start_y_m', 0.0)
         self.declare_parameter('start_yaw_rad', 0.0)
@@ -36,10 +37,12 @@ class GoalPathPublisher(Node):
         self.point_spacing_m = max(0.05, float(self.get_parameter('point_spacing_m').value))
         self.frame_id = str(self.get_parameter('frame_id').value)
         self.use_current_pose = bool(self.get_parameter('use_current_pose').value)
+        self.lock_start_pose = bool(self.get_parameter('lock_start_pose').value)
         self.current_x_m = float(self.get_parameter('start_x_m').value)
         self.current_y_m = float(self.get_parameter('start_y_m').value)
         self.current_yaw_rad = float(self.get_parameter('start_yaw_rad').value)
         self.have_odom = not self.use_current_pose
+        self.path_locked = not self.use_current_pose
 
         qos = QoSProfile(depth=1)
         qos.reliability = ReliabilityPolicy.RELIABLE
@@ -55,6 +58,8 @@ class GoalPathPublisher(Node):
 
     def on_odom(self, msg: Odometry) -> None:
         if not self.use_current_pose:
+            return
+        if self.lock_start_pose and self.path_locked:
             return
         self.current_x_m = float(msg.pose.pose.position.x)
         self.current_y_m = float(msg.pose.pose.position.y)
@@ -99,6 +104,8 @@ class GoalPathPublisher(Node):
             path.poses.append(pose)
 
         self.publisher.publish(path)
+        if self.lock_start_pose:
+            self.path_locked = True
 
 
 def main() -> None:

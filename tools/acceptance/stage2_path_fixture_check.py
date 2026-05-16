@@ -19,6 +19,7 @@ REQUIRED_CASES = [
     "s_curve",
     "stop_at_end",
     "goal_2m_2m",
+    "goal_3m_2m",
 ]
 
 
@@ -138,7 +139,7 @@ def validate_stop_at_end(fixture: dict[str, Any], poses: list[dict[str, Any]]) -
     require(path_length(poses) >= 1.4, "stop_at_end path length too short")
 
 
-def validate_goal_2m_2m(fixture: dict[str, Any], poses: list[dict[str, Any]]) -> None:
+def validate_goal_fixture(fixture: dict[str, Any], poses: list[dict[str, Any]]) -> None:
     require(fixture.get("stop_at_end") is True, "goal fixture must require terminal stop")
     expected = fixture.get("expected", {})
     require(isinstance(expected, dict), "goal fixture must include expected object")
@@ -149,7 +150,8 @@ def validate_goal_2m_2m(fixture: dict[str, Any], poses: list[dict[str, Any]]) ->
     require(math.isclose(float(poses[0]["y"]), 0.0, abs_tol=1e-6), "goal path must start at y=0")
     require(math.isclose(float(poses[-1]["x"]), goal_x, abs_tol=0.02), "goal path final x mismatch")
     require(math.isclose(float(poses[-1]["y"]), goal_y, abs_tol=0.02), "goal path final y mismatch")
-    require(path_length(poses) >= 2.7, "goal path length must be about sqrt(8) m")
+    expected_length = math.hypot(goal_x, goal_y)
+    require(math.isclose(path_length(poses), expected_length, abs_tol=0.05), "goal path length mismatch")
     require(max(float(pose["x"]) for pose in poses) <= goal_x + 0.02, "goal path x overshoots target")
     require(max(float(pose["y"]) for pose in poses) <= goal_y + 0.02, "goal path y overshoots target")
     require(all(float(pose["x"]) >= -1e-6 and float(pose["y"]) >= -1e-6 for pose in poses),
@@ -172,8 +174,8 @@ def validate_case(case: str, fixture_dir: Path) -> None:
         validate_s_curve(poses)
     elif case == "stop_at_end":
         validate_stop_at_end(fixture, poses)
-    elif case == "goal_2m_2m":
-        validate_goal_2m_2m(fixture, poses)
+    elif case in ("goal_2m_2m", "goal_3m_2m"):
+        validate_goal_fixture(fixture, poses)
 
 
 def run_checks(fixture_dir: Path) -> list[CheckResult]:
