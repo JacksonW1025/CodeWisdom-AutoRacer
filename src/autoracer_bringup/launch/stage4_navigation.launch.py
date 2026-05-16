@@ -44,6 +44,7 @@ def pointcloud_to_laserscan_node():
 def generate_launch_description():
     autoracer_nav_dir = Path(get_package_share_directory('autoracer_robot_nav2'))
     stage1_launch = Path(get_package_share_directory('autoracer_bringup')) / 'launch' / 'stage1_chassis.launch.py'
+    robot_description_launch = Path(get_package_share_directory('autoracer_robot_urdf')) / 'launch' / 'robot_description.launch.py'
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     map_yaml_file = LaunchConfiguration('map')
@@ -170,6 +171,7 @@ def generate_launch_description():
         DeclareLaunchArgument('serial_baud_rate', default_value='115200', description='Serial baud rate'),
         DeclareLaunchArgument('counts_per_meter', default_value='0.0', description='Measured Hall counts per meter; keep 0 until calibrated'),
         DeclareLaunchArgument('use_ekf', default_value='true', description='Start EKF for canonical /odom when /imu/data is available'),
+        DeclareLaunchArgument('start_robot_description', default_value='true', description='Start URDF robot_state_publisher for base_link to sensor TF'),
         DeclareLaunchArgument('start_chassis', default_value='true', description='Start phase-1 Ackermann chassis chain'),
         DeclareLaunchArgument('start_lidar', default_value='true', description='Start LiDAR driver for /point_cloud_raw'),
         DeclareLaunchArgument('start_nav2', default_value='true', description='Start Nav2 and Collision Monitor; set false only for local dry launch parsing'),
@@ -185,6 +187,10 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_on_command', default_value='true'),
         DeclareLaunchArgument('publish_timeout_stop', default_value='true'),
         DeclareLaunchArgument('diagnostics_rate_hz', default_value='10.0'),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(str(robot_description_launch)),
+            condition=IfCondition(LaunchConfiguration('start_robot_description')),
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(str(stage1_launch)),
             condition=IfCondition(LaunchConfiguration('start_chassis')),

@@ -28,6 +28,9 @@ autoracer_robot_urdf/
 # 单独启动 URDF 可视化
 ros2 launch autoracer_robot_urdf robot_description.launch.py
 
+# 可选启动非固定关节状态发布器；阶段三/四固定传感器 TF 不需要它
+ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher:=true
+
 # 带关节 GUI 调试
 ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true
 

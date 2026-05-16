@@ -251,9 +251,12 @@ def main() -> None:
     adapter = TwistToAckermannNode()
     try:
         rclpy.spin(adapter.node)
+    except KeyboardInterrupt:
+        pass
     finally:
         adapter.node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == "__main__":

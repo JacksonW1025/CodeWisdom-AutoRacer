@@ -14,6 +14,7 @@
   <exec_depend>turn_on_autoracer_robot</exec_depend>
   <exec_depend>autoracer_path_tracking</exec_depend>
   <exec_depend>autoracer_slam_toolbox</exec_depend>
+  <exec_depend>autoracer_robot_urdf</exec_depend>
   <exec_depend>autoracer_robot_nav2</exec_depend>
   <exec_depend>lslidar_driver</exec_depend>
   <exec_depend>nav2_bringup</exec_depend>
