@@ -31,7 +31,7 @@ checks JSON:
 | `amcl_localization` | `/amcl_pose`、`map -> odom`、定位稳定 | 初始位姿方向正确 |  | 未实现/FAIL/PASS/BLOCKED |
 | `global_plan_forward` | Smac Hybrid-A* path、最小转弯半径、footprint | 路径不穿墙、不明显不可达 |  | 未实现/FAIL/PASS/BLOCKED |
 | `rpp_cmd_vel` | `/nav2_cmd_vel`、禁用原地旋转、速度限制 | 车辆行为平顺 |  | 未实现/FAIL/PASS/BLOCKED |
-| `collision_monitor_stop` | `/safe_nav2_cmd_vel`、stop/slowdown/limit 触发 | 车未继续撞向障碍 |  | 未实现/FAIL/PASS/BLOCKED |
+| `collision_monitor_stop` | `/safe_nav2_cmd_vel`、Collision Monitor stop/slowdown、velocity smoother 和 adapter 限幅触发 | 车未继续撞向障碍 |  | 未实现/FAIL/PASS/BLOCKED |
 | `cmd_vel_isolation` | `/cmd_vel` 不直连串口桥；`/nav2_cmd_vel -> /safe_nav2_cmd_vel -> adapter` | 无旁路 |  | 未实现/FAIL/PASS/BLOCKED |
 | `adapter_ackermann_output` | `/safe_nav2_cmd_vel -> /ackermann_cmd`、限幅、不可行请求停车、diagnostics | 转向/速度方向正确 |  | 未实现/FAIL/PASS/BLOCKED |
 | `goal_reached_stop` | Nav2 goal 完成，`/ackermann_cmd` 停车 | 实车停在可接受范围 |  | 未实现/FAIL/PASS/BLOCKED |
@@ -48,7 +48,7 @@ Nav2 / adapter 参数:
 | `minimum_turning_radius` | 2.24 |
 | `allow_reversing` | false / true |
 | `use_rotate_to_heading` | false |
-| collision monitor zones | 4A: `front_stop`、`front_slowdown`、`front_limit`; 4B extra: `rear_stop`、`rear_slowdown`、`left_side_stop`、`right_side_stop` |
+| collision monitor zones | 4A: `front_stop`、`front_slowdown`; 4B extra: `rear_stop`、`rear_slowdown`、`left_side_stop`、`right_side_stop` |
 | Nav2 internal cmd topic | `/nav2_cmd_vel` |
 | safe cmd topic | `/safe_nav2_cmd_vel` |
 | adapter diagnostics topic | `/twist_to_ackermann/diagnostics` |
@@ -58,6 +58,7 @@ Nav2 / adapter 参数:
 | `angular_deadband_radps` | 0.02 |
 | `input_timeout_sec` | 0.50 |
 | `brake_on_stop` | true |
+| `publish_timeout_stop` | true |
 
 复用边界:
 

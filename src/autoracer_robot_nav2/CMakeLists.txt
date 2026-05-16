@@ -8,4 +8,10 @@ install(DIRECTORY launch param map rviz
   DESTINATION share/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  scripts/twist_to_ackermann.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME twist_to_ackermann
+)
+
 ament_package()
