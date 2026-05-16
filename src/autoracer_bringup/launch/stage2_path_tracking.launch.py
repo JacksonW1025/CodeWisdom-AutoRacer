@@ -27,6 +27,8 @@ def generate_launch_description():
         DeclareLaunchArgument('lookahead_m', default_value='0.60', description='Pure Pursuit lookahead distance'),
         DeclareLaunchArgument('goal_tolerance_m', default_value='0.05', description='Distance to final pose that commands stop'),
         DeclareLaunchArgument('control_rate_hz', default_value='20.0', description='Tracker command rate'),
+        DeclareLaunchArgument('prearm_zero_before_motion', default_value='true', description='Hold zero Ackermann command until chassis auto control is ready'),
+        DeclareLaunchArgument('prearm_timeout_s', default_value='3.0', description='Seconds before warning while holding prearm zero command'),
         DeclareLaunchArgument('fixture_dir', default_value=str(fixture_dir), description='Directory containing stage-2 path fixture JSON files'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(str(stage1_launch)),
@@ -63,6 +65,8 @@ def generate_launch_description():
                 'max_steering_angle_rad': 0.262,
                 'max_target_speed_mps': ParameterValue(LaunchConfiguration('max_target_speed_mps'), value_type=float),
                 'allow_reverse': False,
+                'prearm_zero_before_motion': ParameterValue(LaunchConfiguration('prearm_zero_before_motion'), value_type=bool),
+                'prearm_timeout_s': ParameterValue(LaunchConfiguration('prearm_timeout_s'), value_type=float),
             }],
         ),
     ])

@@ -41,6 +41,8 @@ rosbag 路径:
 | `max_steering_angle_rad` | 0.262 |
 | `target_speed_mps` |  |
 | `max_target_speed_mps` | 默认 0.25；现场批准后最高 1.00 |
+| `prearm_zero_before_motion` | true |
+| 预使能通过条件 | `/chassis_state`: `auto_enabled=true`、`command_timeout=false`、`rc_override_active=false`、`estop_active=false` |
 | STM32 自动命令限幅 | 前进 1.00 m/s；倒车 0.60 m/s |
 | 霍尔超速保护 | 5.0 m/s 触发；4.5 m/s 释放；不作为测试目标速度 |
 
