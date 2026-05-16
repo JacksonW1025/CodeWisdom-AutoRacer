@@ -14,6 +14,10 @@ build/
 install/
 log/
 
+# Real-car acceptance raw outputs stay local; commit only distilled records.
+docs/test-records/logs/
+docs/test-records/rosbags/
+
 # Python
 __pycache__/
 *.py[cod]
