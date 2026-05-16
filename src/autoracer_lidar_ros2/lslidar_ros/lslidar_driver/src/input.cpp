@@ -130,7 +130,7 @@ namespace lslidar_driver {
         }
 
         if (flag == 0) {
-            throw std::runtime_error("Signal received, process terminated.");
+            return -1;
         }
 
         return 0;
@@ -236,7 +236,7 @@ namespace lslidar_driver {
         }                 // loop back and try again
 
         if (flag == 0) {
-            throw std::runtime_error("Signal received, process terminated.");
+            return -1;
         }
         
   		return 0;

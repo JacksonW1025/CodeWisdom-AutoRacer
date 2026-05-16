@@ -18,9 +18,12 @@
 
 #include "lslidar_driver/lslidar_driver.h"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
+#include <csignal>
 #include <functional>
 
 #include <memory>
+
+extern volatile sig_atomic_t flag;
 
 namespace lslidar_driver {
     LslidarDriver::LslidarDriver() : LslidarDriver(rclcpp::NodeOptions()) {
@@ -48,6 +51,16 @@ namespace lslidar_driver {
                                                                        scan_msg_bak(new sensor_msgs::msg::LaserScan()){
                                                                     
         return;
+    }
+
+    LslidarDriver::~LslidarDriver() {
+        flag = 0;
+        if (poll_thread_ && poll_thread_->joinable()) {
+            poll_thread_->join();
+        }
+        if (difop_thread_ && difop_thread_->joinable()) {
+            difop_thread_->join();
+        }
     }
 
     bool LslidarDriver::checkPacketValidity(lslidar_msgs::msg::LslidarPacket::UniquePtr &packet) {
@@ -323,7 +336,7 @@ namespace lslidar_driver {
         // reading and publishing scans as fast as possible.
         lslidar_msgs::msg::LslidarPacket::UniquePtr difop_packet_ptr(new lslidar_msgs::msg::LslidarPacket());
         static bool is_print_working_time = true;
-        while (rclcpp::ok()) {
+        while (rclcpp::ok() && flag == 1) {
             // keep reading
             int rc = difop_input_->getPacket(difop_packet_ptr);
             
@@ -1700,7 +1713,7 @@ namespace lslidar_driver {
     }
 
     void LslidarDriver::pollThread(void) {
-        while (rclcpp::ok()) {
+        while (rclcpp::ok() && flag == 1) {
             poll();
         }
     }

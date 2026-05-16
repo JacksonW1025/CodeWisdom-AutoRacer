@@ -25,6 +25,7 @@
 ## Quick Start
 
 启动入口、launch 参数和运行检查只维护在 [启动与运行规范](docs/启动与运行规范.md)。
+阶段 3/4 固定入口、开车前原地检查、rosbag/map 证据目录和人工许可边界见该文档的“阶段 3：2D SLAM 建图”和“阶段 4：2D Nav2 阿克曼地图导航”。
 
 ## Documentation
 

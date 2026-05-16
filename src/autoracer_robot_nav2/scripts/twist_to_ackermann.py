@@ -246,15 +246,22 @@ class TwistToAckermannNode:
 
 def main() -> None:
     import rclpy
+    from rclpy.exceptions import NotInitializedException
+    from rclpy.executors import ExternalShutdownException
 
-    rclpy.init()
-    adapter = TwistToAckermannNode()
+    adapter = None
     try:
+        rclpy.init()
+        adapter = TwistToAckermannNode()
         rclpy.spin(adapter.node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException, NotInitializedException):
         pass
     finally:
-        adapter.node.destroy_node()
+        if adapter is not None:
+            try:
+                adapter.node.destroy_node()
+            except KeyboardInterrupt:
+                pass
         if rclpy.ok():
             rclpy.shutdown()
 

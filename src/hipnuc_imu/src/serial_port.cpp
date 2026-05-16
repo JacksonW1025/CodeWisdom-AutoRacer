@@ -50,9 +50,13 @@ class IMUPublisher : public rclcpp::Node
 			imu_pub = this->create_publisher<sensor_msgs::msg::Imu>(imu_topic, 20);
 
 			fd = open_serial(serial_port, baud_rate);
+			timer_ = this->create_wall_timer(1ms, [this]() { imu_read(); });
+		}
 
-			while(1)
-				imu_read();
+		~IMUPublisher()
+		{
+			if(fd >= 0)
+				close(fd);
 		}
 
 	private: 
@@ -64,10 +68,12 @@ class IMUPublisher : public rclcpp::Node
 			
 			int rpoll = poll(&p, 1, 5);
 
-			if(rpoll == 0)
+			if(rpoll <= 0)
 				return ;
 
 			int n = read(fd, buf, sizeof(buf));
+			if(n <= 0)
+				return ;
 
 			for(int i = 0; i < n; i++)
 			{
@@ -161,6 +167,7 @@ class IMUPublisher : public rclcpp::Node
 		std::string imu_topic;
 		sensor_msgs::msg::Imu imu_data = sensor_msgs::msg::Imu();
 		rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub;
+		rclcpp::TimerBase::SharedPtr timer_;
 };
 
 

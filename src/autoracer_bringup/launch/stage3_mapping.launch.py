@@ -4,11 +4,33 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+
+
+def launch_bool(context, name):
+    value = LaunchConfiguration(name).perform(context).strip().lower()
+    return value in ('1', 'true', 'yes', 'on')
+
+
+def validate_stage3_required_inputs(context, *args, **kwargs):
+    if not launch_bool(context, 'start_chassis'):
+        return []
+
+    value = LaunchConfiguration('counts_per_meter').perform(context).strip()
+    try:
+        counts_per_meter = float(value)
+    except ValueError as exc:
+        raise RuntimeError('stage3 counts_per_meter must be a measured positive number') from exc
+
+    if counts_per_meter <= 0.0:
+        raise RuntimeError('stage3 counts_per_meter must be > 0 when start_chassis is true')
+
+    return []
 
 
 def generate_launch_description():
@@ -19,13 +41,35 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('usart_port_name', default_value='/dev/ttyACM0', description='Serial port for STM32 UART4 bridge'),
         DeclareLaunchArgument('serial_baud_rate', default_value='115200', description='Serial baud rate'),
-        DeclareLaunchArgument('counts_per_meter', default_value='0.0', description='Measured Hall counts per meter; keep 0 until calibrated'),
+        DeclareLaunchArgument('counts_per_meter', default_value='', description='Measured Hall counts per meter; required when start_chassis is true'),
         DeclareLaunchArgument('use_ekf', default_value='true', description='Start EKF for canonical /odom when /imu/data is available'),
+        DeclareLaunchArgument('start_imu', default_value='true', description='Start IMU raw driver and Madgwick /imu/data filter'),
         DeclareLaunchArgument('start_robot_description', default_value='true', description='Start URDF robot_state_publisher for base_link to sensor TF'),
         DeclareLaunchArgument('start_chassis', default_value='true', description='Start phase-1 Ackermann chassis chain'),
         DeclareLaunchArgument('start_lidar', default_value='true', description='Start LiDAR driver for /point_cloud_raw'),
         DeclareLaunchArgument('use_rviz', default_value='true', description='Start RViz for mapping visualization'),
         DeclareLaunchArgument('odom_frame', default_value='odom', description='SLAM odom frame; phase 3 uses canonical odom'),
+        OpaqueFunction(function=validate_stage3_required_inputs),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(PathJoinSubstitution([
+                FindPackageShare('hipnuc_imu'),
+                'launch',
+                'imu_spec_msg.launch.py',
+            ])),
+            condition=IfCondition(LaunchConfiguration('start_imu')),
+        ),
+        Node(
+            package='imu_filter_madgwick',
+            executable='imu_filter_madgwick_node',
+            name='imu_filter_madgwick',
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('start_imu')),
+            parameters=[PathJoinSubstitution([
+                FindPackageShare('turn_on_autoracer_robot'),
+                'config',
+                'imu.yaml',
+            ])],
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(str(robot_description_launch)),
             condition=IfCondition(LaunchConfiguration('start_robot_description')),

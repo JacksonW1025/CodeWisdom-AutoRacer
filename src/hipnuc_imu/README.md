@@ -37,6 +37,9 @@ KERNEL=="ttyUSB*", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", ATTRS{seri
 # 单独运行 IMU 驱动
 ros2 launch hipnuc_imu imu_spec_msg.launch.py
 
+# 启动调试 listener；正式阶段 3/4 固定入口不需要该节点
+ros2 launch hipnuc_imu imu_spec_msg.launch.py start_listener:=true
+
 # 查看 IMU 数据
 ros2 topic echo /imu/data_raw
 ```

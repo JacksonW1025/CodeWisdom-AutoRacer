@@ -25,7 +25,7 @@ autoracer_robot_urdf/
 ## 运行
 
 ```bash
-# 单独启动 URDF 可视化
+# 单独启动 URDF/TF；同时发布 base_footprint -> base_link 和 base_link -> sensor TF
 ros2 launch autoracer_robot_urdf robot_description.launch.py
 
 # 可选启动非固定关节状态发布器；阶段三/四固定传感器 TF 不需要它

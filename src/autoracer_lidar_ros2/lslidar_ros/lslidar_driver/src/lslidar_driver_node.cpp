@@ -5,8 +5,10 @@ using namespace lslidar_driver;
 volatile sig_atomic_t flag = 1;
 
 static void my_handler([[maybe_unused]] int sig) {
-    LS_ERROR << "Signal received, ending process." << LS_END;
     flag = 0;
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
 }
 
 int main(int argc, char **argv) {
@@ -19,6 +21,8 @@ int main(int argc, char **argv) {
     }
 
     rclcpp::spin(node);
-    rclcpp::shutdown();
+    if (rclcpp::ok()) {
+        rclcpp::shutdown();
+    }
     return 0;
 }

@@ -47,6 +47,9 @@ def check_stage4_launch(repo_root: Path) -> None:
 
     required = {
         "stage1_chassis.launch.py": "stage4 launch must include phase-1 chassis entry",
+        "imu_spec_msg.launch.py": "stage4 launch must include IMU raw driver",
+        "imu_filter_madgwick_node": "stage4 launch must include Madgwick /imu/data filter",
+        "robot_description.launch.py": "stage4 launch must include URDF/TF launch",
         "lslidar_cx_launch.py": "stage4 launch must include LiDAR launch",
         "stage4_nav2_params.yaml": "stage4 launch must default to stable stage4 params",
         "nav2_bringup": "stage4 launch must include Nav2 bringup",
@@ -60,8 +63,29 @@ def check_stage4_launch(repo_root: Path) -> None:
         "'output_topic': '/ackermann_cmd'": "adapter must publish /ackermann_cmd",
         "'diagnostics_topic': '/twist_to_ackermann/diagnostics'": "adapter diagnostics topic mismatch",
         "start_chassis": "stage4 launch must allow non-hardware dry launch by disabling chassis",
+        "start_imu": "stage4 launch must allow IMU dry-launch control",
+        "start_robot_description": "stage4 launch must allow URDF/TF dry-launch control",
         "start_lidar": "stage4 launch must allow non-hardware dry launch by disabling LiDAR",
         "start_nav2": "stage4 launch must allow local dry launch parsing when Nav2 is not installed",
+        "validate_stage4_required_inputs": "stage4 launch must validate required live inputs",
+        "counts_per_meter must be > 0": "stage4 launch must reject uncalibrated counts_per_meter",
+        "stage4 map must be set": "stage4 launch must require an explicit saved map",
+        "stage4 map file does not exist": "stage4 launch must check map path existence",
+    }
+    for needle, detail in required.items():
+        require_text(text, needle, detail)
+
+
+def check_robot_description_tf(repo_root: Path) -> None:
+    launch = repo_root / "src" / "autoracer_robot_urdf" / "launch" / "robot_description.launch.py"
+    text = launch.read_text(encoding="utf-8")
+
+    required = {
+        "base_footprint_to_base_link": "robot_description must publish base_footprint -> base_link",
+        "'--z', '0.1175'": "base_link must be anchored at axle height above base_footprint",
+        "'--frame-id', 'base_footprint'": "base transform parent must be base_footprint",
+        "'--child-frame-id', 'base_link'": "base transform child must be base_link",
+        "robot_state_publisher": "robot_description must publish URDF fixed sensor TF",
     }
     for needle, detail in required.items():
         require_text(text, needle, detail)
@@ -164,6 +188,7 @@ def check_adapter_diagnostics_contract(repo_root: Path) -> None:
 def run_checks(repo_root: Path) -> list[CheckResult]:
     checks = [
         ("stage4_launch", lambda: check_stage4_launch(repo_root)),
+        ("robot_description_tf", lambda: check_robot_description_tf(repo_root)),
         ("nav2_params", lambda: check_nav2_params(repo_root)),
         ("adapter_math", lambda: check_adapter_math(repo_root)),
         ("adapter_diagnostics_contract", lambda: check_adapter_diagnostics_contract(repo_root)),

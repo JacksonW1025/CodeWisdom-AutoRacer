@@ -50,6 +50,24 @@ def generate_launch_description():
         parameters=[{'robot_description': robot_description}]
     )
 
+    # base_footprint 是 odom/EKF 的底盘平面坐标，base_link 是 URDF 根 link（后轴轴心高度）。
+    # 阶段 3/4 的 /scan 和 SLAM/Nav2 需要 odom -> base_footprint -> base_link -> laser 连通。
+    base_footprint_to_base_link = Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_footprint_to_base_link',
+        arguments=[
+            '--x', '0',
+            '--y', '0',
+            '--z', '0.1175',
+            '--roll', '0',
+            '--pitch', '0',
+            '--yaw', '0',
+            '--frame-id', 'base_footprint',
+            '--child-frame-id', 'base_link',
+        ],
+    )
+
     # joint_state_publisher: 发布关节状态（默认值）
     joint_state_publisher = Node(
         condition=IfCondition(use_jsp),
@@ -71,6 +89,7 @@ def generate_launch_description():
     return LaunchDescription([
         use_jsp_arg,
         use_gui_arg,
+        base_footprint_to_base_link,
         robot_state_publisher,
         joint_state_publisher,
         joint_state_publisher_gui,

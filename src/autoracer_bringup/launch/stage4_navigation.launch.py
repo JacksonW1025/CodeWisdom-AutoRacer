@@ -5,13 +5,40 @@ from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node, SetRemap
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+
+
+def launch_bool(context, name):
+    value = LaunchConfiguration(name).perform(context).strip().lower()
+    return value in ('1', 'true', 'yes', 'on')
+
+
+def validate_stage4_required_inputs(context, *args, **kwargs):
+    if launch_bool(context, 'start_chassis'):
+        value = LaunchConfiguration('counts_per_meter').perform(context).strip()
+        try:
+            counts_per_meter = float(value)
+        except ValueError as exc:
+            raise RuntimeError('stage4 counts_per_meter must be a measured positive number') from exc
+
+        if counts_per_meter <= 0.0:
+            raise RuntimeError('stage4 counts_per_meter must be > 0 when start_chassis is true')
+
+    if launch_bool(context, 'start_nav2'):
+        map_file = LaunchConfiguration('map').perform(context).strip()
+        if not map_file:
+            raise RuntimeError('stage4 map must be set to a saved Stage-3 map when start_nav2 is true')
+
+        if not Path(map_file).expanduser().is_file():
+            raise RuntimeError(f'stage4 map file does not exist: {map_file}')
+
+    return []
 
 
 def pointcloud_to_laserscan_node():
@@ -159,7 +186,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        DeclareLaunchArgument('map', default_value=str(autoracer_nav_dir / 'map' / 'autoracer_map.yaml'), description='Stage-3 map yaml file'),
+        DeclareLaunchArgument('map', default_value='', description='Saved Stage-3 map yaml file; required when start_nav2 is true'),
         DeclareLaunchArgument('params_file', default_value=str(autoracer_nav_dir / 'param' / 'stage4_nav2_params.yaml'), description='Stage-4 Nav2 Ackermann params'),
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('autostart', default_value='true'),
@@ -169,8 +196,9 @@ def generate_launch_description():
         DeclareLaunchArgument('log_level', default_value='info'),
         DeclareLaunchArgument('usart_port_name', default_value='/dev/ttyACM0', description='Serial port for STM32 UART4 bridge'),
         DeclareLaunchArgument('serial_baud_rate', default_value='115200', description='Serial baud rate'),
-        DeclareLaunchArgument('counts_per_meter', default_value='0.0', description='Measured Hall counts per meter; keep 0 until calibrated'),
+        DeclareLaunchArgument('counts_per_meter', default_value='', description='Measured Hall counts per meter; required when start_chassis is true'),
         DeclareLaunchArgument('use_ekf', default_value='true', description='Start EKF for canonical /odom when /imu/data is available'),
+        DeclareLaunchArgument('start_imu', default_value='true', description='Start IMU raw driver and Madgwick /imu/data filter'),
         DeclareLaunchArgument('start_robot_description', default_value='true', description='Start URDF robot_state_publisher for base_link to sensor TF'),
         DeclareLaunchArgument('start_chassis', default_value='true', description='Start phase-1 Ackermann chassis chain'),
         DeclareLaunchArgument('start_lidar', default_value='true', description='Start LiDAR driver for /point_cloud_raw'),
@@ -187,6 +215,27 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_on_command', default_value='true'),
         DeclareLaunchArgument('publish_timeout_stop', default_value='true'),
         DeclareLaunchArgument('diagnostics_rate_hz', default_value='10.0'),
+        OpaqueFunction(function=validate_stage4_required_inputs),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(PathJoinSubstitution([
+                FindPackageShare('hipnuc_imu'),
+                'launch',
+                'imu_spec_msg.launch.py',
+            ])),
+            condition=IfCondition(LaunchConfiguration('start_imu')),
+        ),
+        Node(
+            package='imu_filter_madgwick',
+            executable='imu_filter_madgwick_node',
+            name='imu_filter_madgwick',
+            output='screen',
+            condition=IfCondition(LaunchConfiguration('start_imu')),
+            parameters=[PathJoinSubstitution([
+                FindPackageShare('turn_on_autoracer_robot'),
+                'config',
+                'imu.yaml',
+            ])],
+        ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(str(robot_description_launch)),
             condition=IfCondition(LaunchConfiguration('start_robot_description')),

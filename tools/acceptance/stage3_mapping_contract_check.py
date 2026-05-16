@@ -34,14 +34,36 @@ def check_stage3_launch(repo_root: Path) -> None:
     text = launch.read_text(encoding="utf-8")
 
     require_text(text, "stage1_chassis.launch.py", "stage3 launch must include phase-1 chassis entry")
+    require_text(text, "imu_spec_msg.launch.py", "stage3 launch must include IMU raw driver")
+    require_text(text, "imu_filter_madgwick_node", "stage3 launch must include Madgwick /imu/data filter")
     require_text(text, "lslidar_cx_launch.py", "stage3 launch must include LiDAR launch")
     require_text(text, "slam.launch.py", "stage3 launch must include slam_toolbox launch")
+    require_text(text, "robot_description.launch.py", "stage3 launch must include URDF/TF launch")
+    require_text(text, "start_robot_description", "stage3 launch must allow URDF/TF dry-launch control")
     require_text(text, "'include_bringup': 'false'", "stage3 must force slam include_bringup=false")
     require_text(text, "counts_per_meter", "stage3 launch must expose counts_per_meter")
+    require_text(text, "validate_stage3_required_inputs", "stage3 launch must validate required live inputs")
+    require_text(text, "counts_per_meter must be > 0", "stage3 launch must reject uncalibrated counts_per_meter")
+    require_text(text, "start_imu", "stage3 launch must allow IMU dry-launch control")
     require_text(text, "start_chassis", "stage3 launch must allow non-hardware dry launch by disabling chassis")
     require_text(text, "start_lidar", "stage3 launch must allow non-hardware dry launch by disabling LiDAR")
     require_text(text, "odom_frame", "stage3 launch must expose odom_frame")
     require("/cmd_vel" not in text, "stage3 launch must not introduce legacy /cmd_vel")
+
+
+def check_robot_description_tf(repo_root: Path) -> None:
+    launch = repo_root / "src" / "autoracer_robot_urdf" / "launch" / "robot_description.launch.py"
+    text = launch.read_text(encoding="utf-8")
+
+    required = {
+        "base_footprint_to_base_link": "robot_description must publish base_footprint -> base_link",
+        "'--z', '0.1175'": "base_link must be anchored at axle height above base_footprint",
+        "'--frame-id', 'base_footprint'": "base transform parent must be base_footprint",
+        "'--child-frame-id', 'base_link'": "base transform child must be base_link",
+        "robot_state_publisher": "robot_description must publish URDF fixed sensor TF",
+    }
+    for needle, detail in required.items():
+        require_text(text, needle, detail)
 
 
 def check_slam_launch(repo_root: Path) -> None:
@@ -110,6 +132,7 @@ def check_map_save_launch(repo_root: Path) -> None:
 def run_checks(repo_root: Path) -> list[CheckResult]:
     checks = [
         ("stage3_launch", lambda: check_stage3_launch(repo_root)),
+        ("robot_description_tf", lambda: check_robot_description_tf(repo_root)),
         ("slam_launch", lambda: check_slam_launch(repo_root)),
         ("slam_params", lambda: check_slam_params(repo_root)),
         ("map_save_launch", lambda: check_map_save_launch(repo_root)),
