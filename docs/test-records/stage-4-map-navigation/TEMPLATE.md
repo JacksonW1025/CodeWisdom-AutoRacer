@@ -8,6 +8,8 @@ Case:
 下位机仓库/分支/提交:
 根仓库提交:
 工作区是否有未提交改动:
+run id:
+artifact 目录:
 
 测试类型: map-load / amcl-localization / nav2-plan / rpp-control / collision-monitor / cmd-vel-isolation / adapter / ground-low-speed
 测试命令:
@@ -18,8 +20,10 @@ adapter 参数:
 topic graph / node info 证据:
 日志路径:
 rosbag 路径:
+checks JSON:
 
 注意：键盘、manual 或 legacy `/cmd_vel` 只能作为迁移/排障记录，不能作为阶段 4 PASS 证据。
+阶段 4A 是默认 PASS 范围；`reverse_plan_controlled` 是阶段 4B 扩展项，4A 通过时可记为 `未实现/4B 后续`，不得伪记为 PASS。
 
 | Case | 自动检查 | 人工检查 | 证据文件 | 状态 |
 | --- | --- | --- | --- | --- |
@@ -44,12 +48,25 @@ Nav2 / adapter 参数:
 | `minimum_turning_radius` | 2.24 |
 | `allow_reversing` | false / true |
 | `use_rotate_to_heading` | false |
-| collision monitor zones |  |
+| collision monitor zones | 4A: `front_stop`、`front_slowdown`、`front_limit`; 4B extra: `rear_stop`、`rear_slowdown`、`left_side_stop`、`right_side_stop` |
 | Nav2 internal cmd topic | `/nav2_cmd_vel` |
 | safe cmd topic | `/safe_nav2_cmd_vel` |
 | adapter diagnostics topic | `/twist_to_ackermann/diagnostics` |
 | adapter diagnostics type | `diagnostic_msgs/msg/DiagnosticArray` |
 | final chassis command | `/ackermann_cmd` |
+| `min_turn_speed_mps` | 0.05 |
+| `angular_deadband_radps` | 0.02 |
+| `input_timeout_sec` | 0.50 |
+| `brake_on_stop` | true |
+
+复用边界:
+
+| 项 | 值 |
+| --- | --- |
+| 是否使用 Nav2 官方 RPP | true / false |
+| 是否使用 Collision Monitor | true / false |
+| 是否使用自研 tracker 替代 RPP | false |
+| `/cmd_vel` 是否直连底盘 | false |
 
 adapter diagnostics 字段:
 
@@ -63,7 +80,7 @@ adapter diagnostics 字段:
 | `steering_limited` | true / false |
 | `reverse` | true / false |
 | `infeasible_spin` | true / false |
-| `stop_reason` |  |
+| `stop_reason` | none / zero_command / invalid_input / input_timeout / infeasible_spin / reverse_disabled |
 
 安全状态:
 是否架空/低速地面:

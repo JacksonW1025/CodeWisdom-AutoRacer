@@ -8,6 +8,8 @@ Case:
 下位机仓库/分支/提交:
 根仓库提交:
 工作区是否有未提交改动:
+run id:
+artifact 目录:
 
 测试类型: lidar-topic / tf-check / slam-live / map-save-reload / bag-replay
 测试命令:
@@ -18,6 +20,7 @@ Case:
 pose-graph / serialized map 路径:
 日志路径:
 rosbag 路径:
+checks JSON:
 扫图运动方式:
 
 ## 追踪表
@@ -36,10 +39,14 @@ rosbag 路径:
 LiDAR frame:
 odom 来源:
 TF 检查结果:
+LiDAR/TF 自动检查:
+地图文件自动检查:
 map save/reload 结果:
 bag replay 结果:
 是否沿用阶段 1 安全链路:
 是否仅使用 RC/遥控扫图:
+是否复用阶段 2 tracker:
+正式 `/ackermann_cmd` 发布者:
 
 ## 结果
 
