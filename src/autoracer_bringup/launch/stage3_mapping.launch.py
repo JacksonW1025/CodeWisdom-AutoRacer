@@ -49,6 +49,15 @@ def generate_launch_description():
         DeclareLaunchArgument('start_lidar', default_value='true', description='Start LiDAR driver for /point_cloud_raw'),
         DeclareLaunchArgument('use_rviz', default_value='true', description='Start RViz for mapping visualization'),
         DeclareLaunchArgument('odom_frame', default_value='odom', description='SLAM odom frame; phase 3 uses canonical odom'),
+        DeclareLaunchArgument(
+            'slam_params_file',
+            default_value=PathJoinSubstitution([
+                FindPackageShare('autoracer_slam_toolbox'),
+                'config',
+                'mapper_params_online_sync.yaml',
+            ]),
+            description='slam_toolbox parameter file; use dense profiles for formal manual mapping',
+        ),
         OpaqueFunction(function=validate_stage3_required_inputs),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
@@ -98,6 +107,7 @@ def generate_launch_description():
                 'include_bringup': 'false',
                 'use_rviz': LaunchConfiguration('use_rviz'),
                 'odom_frame': LaunchConfiguration('odom_frame'),
+                'slam_params_file': LaunchConfiguration('slam_params_file'),
             }.items(),
         ),
     ])

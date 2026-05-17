@@ -28,6 +28,10 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration('use_rviz', default='true')
     odom_frame = LaunchConfiguration('odom_frame', default='odom')
     include_bringup = LaunchConfiguration('include_bringup', default='true')
+    slam_params_file = LaunchConfiguration(
+        'slam_params_file',
+        default=os.path.join(pkg_dir, 'config', 'mapper_params_online_sync.yaml'),
+    )
 
     # === 底盘驱动（可选）===
     bringup_dir = get_package_share_directory('turn_on_autoracer_robot')
@@ -79,7 +83,7 @@ def generate_launch_description():
         name='slam_toolbox',
         output='screen',
         parameters=[
-            os.path.join(pkg_dir, 'config', 'mapper_params_online_sync.yaml'),
+            slam_params_file,
             {'odom_frame': odom_frame},
         ],
     )
@@ -103,6 +107,9 @@ def generate_launch_description():
                              description='是否启动 RViz2'),
         DeclareLaunchArgument('odom_frame', default_value='odom',
                              description='里程计坐标系；阶段 3 验收使用 odom，odom_combined 仅用于 legacy/EKF 排障'),
+        DeclareLaunchArgument('slam_params_file',
+                             default_value=os.path.join(pkg_dir, 'config', 'mapper_params_online_sync.yaml'),
+                             description='slam_toolbox 参数文件；正式 2D 建图可切换 dense profile'),
 
         autoracer_robot,
         autoracer_lidar,

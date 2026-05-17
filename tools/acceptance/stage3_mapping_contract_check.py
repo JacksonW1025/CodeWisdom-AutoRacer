@@ -48,6 +48,8 @@ def check_stage3_launch(repo_root: Path) -> None:
     require_text(text, "start_chassis", "stage3 launch must allow non-hardware dry launch by disabling chassis")
     require_text(text, "start_lidar", "stage3 launch must allow non-hardware dry launch by disabling LiDAR")
     require_text(text, "odom_frame", "stage3 launch must expose odom_frame")
+    require_text(text, "slam_params_file", "stage3 launch must expose selectable slam_toolbox params")
+    require_text(text, "LaunchConfiguration('slam_params_file')", "stage3 launch must pass slam params into slam launch")
     require("/cmd_vel" not in text, "stage3 launch must not introduce legacy /cmd_vel")
 
 
@@ -84,6 +86,8 @@ def check_slam_launch(repo_root: Path) -> None:
         "'use_inf': True": "use_inf must be true",
         "('cloud_in', '/point_cloud_raw')": "cloud input must be /point_cloud_raw",
         "('scan', '/scan')": "scan output must be /scan",
+        "slam_params_file": "slam launch must expose selectable slam params",
+        "mapper_params_online_sync.yaml": "default slam params must remain the online sync baseline",
     }
     for needle, detail in required_pairs.items():
         require_text(text, needle, detail)
@@ -112,6 +116,26 @@ def check_slam_params(repo_root: Path) -> None:
         require_text(text, needle, detail)
 
 
+def check_dense_slam_params(repo_root: Path) -> None:
+    params = repo_root / "src" / "autoracer_robot_slam" / "autoracer_slam_toolbox" / "config" / "mapper_params_floor2_dense.yaml"
+    text = params.read_text(encoding="utf-8")
+
+    required = {
+        "odom_frame: odom": "dense slam profile must use canonical odom",
+        "scan_topic: /scan": "dense slam profile must consume 2D scan, not raw cloud",
+        "resolution: 0.05": "dense slam profile must keep 5 cm map resolution",
+        "throttle_scans: 2": "dense slam profile must reduce live laptop processing load",
+        "minimum_time_interval: 0.20": "dense slam profile must process scans more frequently than the baseline without overrunning",
+        "minimum_travel_distance: 0.18": "dense slam profile must insert scans below the baseline distance interval",
+        "minimum_travel_heading: 0.12": "dense slam profile must insert scans during modest turns",
+        "scan_buffer_size: 20": "dense slam profile must keep a bounded local scan buffer",
+        "do_loop_closing: true": "dense slam profile must keep loop closure enabled",
+        "This is not a 3D point-cloud matching profile": "dense profile must document 2D-vs-3D boundary",
+    }
+    for needle, detail in required.items():
+        require_text(text, needle, detail)
+
+
 def check_map_save_launch(repo_root: Path) -> None:
     launch = repo_root / "src" / "autoracer_robot_nav2" / "launch" / "save_map.launch.py"
     text = launch.read_text(encoding="utf-8")
@@ -135,6 +159,7 @@ def run_checks(repo_root: Path) -> list[CheckResult]:
         ("robot_description_tf", lambda: check_robot_description_tf(repo_root)),
         ("slam_launch", lambda: check_slam_launch(repo_root)),
         ("slam_params", lambda: check_slam_params(repo_root)),
+        ("dense_slam_params", lambda: check_dense_slam_params(repo_root)),
         ("map_save_launch", lambda: check_map_save_launch(repo_root)),
     ]
     results: list[CheckResult] = []
