@@ -10,6 +10,9 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/AckermannChassisCommand.msg"
+  "msg/ChassisState.msg"
+  "msg/PathTrackingDiagnostics.msg"
   "msg/Supersonic.msg"
   "srv/SetRgb.srv"
   DEPENDENCIES std_msgs

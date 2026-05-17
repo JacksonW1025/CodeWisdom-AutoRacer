@@ -52,8 +52,8 @@
     # LiDAR C32 (coordinate_opt=false): X=右, Y=前, Z=上
     # 旋转: IMU_X(前)→LiDAR_Y(前), IMU_Y(左)→LiDAR_-X(-右), IMU_Z(上)→LiDAR_Z(上)
     #        即绕 Z 轴旋转 +90°
-    # 平移: gyro_link→base_link(+0.11m Z) + base_link→laser(+0.24m X, +0.39m Z) = [0.24, 0, 0.50]
-    extrinsicTrans:  [ 0.24,  0.0,  0.50 ]
+    # 平移: gyro_link→base_link(+0.1175m Z) + base_link→laser(+0.24m X, +0.39m Z) = [0.24, 0, 0.5075]
+    extrinsicTrans:  [ 0.24,  0.0,  0.5075 ]
     extrinsicRot:    [ 0.0, -1.0,  0.0,
                        1.0,  0.0,  0.0,
                        0.0,  0.0,  1.0 ]

@@ -2,6 +2,7 @@
 
 > 记录 LIO-SAM 在 AutoRacer 平台上的已知问题、调参方向和后续优化计划。
 > 更新日期：2026-03-03
+> 本文件只作为 LIO-SAM 包内调参备忘，不作为阶段验收契约。阶段验收以仓库根 `../../../../docs/阶段路线图.md` 和 `../../../../docs/开发流程与验证规范.md` 为准。
 
 ## 1. 已知问题
 
@@ -74,14 +75,14 @@
 
 ### 3.3 LiDAR-IMU 外参精标定
 
-- [ ] 当前平移外参 `extrinsicTrans: [0.24, 0.0, 0.50]` 基于手工测量，精度有限
+- [ ] 当前平移外参 `extrinsicTrans: [0.24, 0.0, 0.5075]` 基于手工测量，精度有限
 - [ ] 旋转外参基于坐标系理论推导，可能存在微小安装偏差
 - [ ] 考虑使用 [lidar_imu_calib](https://github.com/chennuo0125-HIT/lidar_imu_calib) 进行自动标定
 
 ### 3.4 GNSS 融合
 
 - [ ] 集成 G90 GNSS+RTK 后，启用 LIO-SAM GPS 因子（`gpsTopic`）
-- [ ] 使用 `launch/run_gnss.launch.py` 或在 `autoracer_run.launch.py` 中添加 GPS odometry 节点
+- [ ] 在 `autoracer_run.launch.py` 基础上补充 AutoRacer 专用 GPS odometry / GNSS launch
 - [ ] 调整 `gpsCovThreshold` 和 `poseCovThreshold` 控制 GPS 因子频率
 
 ### 3.5 参数调优备忘

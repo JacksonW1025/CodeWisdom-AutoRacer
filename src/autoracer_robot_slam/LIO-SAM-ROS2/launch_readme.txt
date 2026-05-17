@@ -1,16 +1,13 @@
-lio-sam online (no gnss):
-ros2 launch lio_sam run.launch.py
+lio-sam current AutoRacer entry:
+ros2 launch lio_sam autoracer_run.launch.py
 
-lio-sam online (gnss):
-ros2 launch lio_sam  run_gnss.launch.py
+required inputs:
+- /point_cloud_raw
+- /imu/data_raw
 
-lio-sam offline (no gnss):
-ros2 launch lio_sam run_offline.launch.py
-
-lio-sam offline (gnss):
-ros2 launch lio_sam  run_offline_gnss.launch.py
-or
-ros2 launch lio_sam  run_usegnss.launch.py
+notes:
+- legacy Wheeltec-based run*.launch.py wrappers have been removed
+- GNSS/offline launch wrappers are not provided in the current AutoRacer tree
 
 ## Save map
 ```

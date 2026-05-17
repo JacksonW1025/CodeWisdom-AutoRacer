@@ -16,17 +16,20 @@ autoracer_robot_urdf/
 
 ## URDF 模型内容
 
-- **底盘** (base_link): 长 0.85m × 宽 0.50m × 高 0.20m 方块
-- **后轮** × 2: 半径 0.11m 圆柱，continuous joint
-- **前轮** × 2: 带转向节 (revolute ±22.5°) + 车轮 (continuous)
+- **底盘/碰撞外廓** (base_link): 长 0.8775m × 宽 0.57m × 高 0.20m 方块；总高待雷达/支架最终安装后复核
+- **后轮** × 2: 半径 0.1175m 圆柱，continuous joint
+- **前轮** × 2: 带转向节 (revolute ±15°) + 车轮 (continuous)
 - **LiDAR C32** (laser): 固定在 base_link 前方 X=+0.24m, Z=+0.39m
 - **ZED X** (zed_camera_link): 固定在 base_link 前方 X=+0.34m, Z=+0.29m
 
 ## 运行
 
 ```bash
-# 单独启动 URDF 可视化
+# 单独启动 URDF/TF；同时发布 base_footprint -> base_link 和 base_link -> sensor TF
 ros2 launch autoracer_robot_urdf robot_description.launch.py
+
+# 可选启动非固定关节状态发布器；阶段三/四固定传感器 TF 不需要它
+ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher:=true
 
 # 带关节 GUI 调试
 ros2 launch autoracer_robot_urdf robot_description.launch.py use_joint_state_publisher_gui:=true

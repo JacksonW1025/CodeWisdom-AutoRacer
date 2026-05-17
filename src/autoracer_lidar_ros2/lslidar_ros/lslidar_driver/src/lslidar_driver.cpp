@@ -18,9 +18,12 @@
 
 #include "lslidar_driver/lslidar_driver.h"
 #include "sensor_msgs/point_cloud2_iterator.hpp"
+#include <csignal>
 #include <functional>
 
 #include <memory>
+
+extern volatile sig_atomic_t flag;
 
 namespace lslidar_driver {
     LslidarDriver::LslidarDriver() : LslidarDriver(rclcpp::NodeOptions()) {
@@ -48,6 +51,16 @@ namespace lslidar_driver {
                                                                        scan_msg_bak(new sensor_msgs::msg::LaserScan()){
                                                                     
         return;
+    }
+
+    LslidarDriver::~LslidarDriver() {
+        flag = 0;
+        if (poll_thread_ && poll_thread_->joinable()) {
+            poll_thread_->join();
+        }
+        if (difop_thread_ && difop_thread_->joinable()) {
+            difop_thread_->join();
+        }
     }
 
     bool LslidarDriver::checkPacketValidity(lslidar_msgs::msg::LslidarPacket::UniquePtr &packet) {
@@ -323,7 +336,7 @@ namespace lslidar_driver {
         // reading and publishing scans as fast as possible.
         lslidar_msgs::msg::LslidarPacket::UniquePtr difop_packet_ptr(new lslidar_msgs::msg::LslidarPacket());
         static bool is_print_working_time = true;
-        while (rclcpp::ok()) {
+        while (rclcpp::ok() && flag == 1) {
             // keep reading
             int rc = difop_input_->getPacket(difop_packet_ptr);
             
@@ -493,11 +506,17 @@ namespace lslidar_driver {
 
         sensor_msgs::msg::PointCloud2 pc_msg;
         if (pcl_type) {
+            if (!point_cloud_xyzi_bak_) {
+                return;
+            }
             if (point_cloud_xyzi_bak_->points.size() < 100) {
                 return;
             }
             pcl::toROSMsg(*point_cloud_xyzi_bak_, pc_msg);
         } else {
+            if (!point_cloud_xyzirt_bak_) {
+                return;
+            }
             if (point_cloud_xyzirt_bak_->points.size() < 100) {
                 return;
             }
@@ -513,6 +532,9 @@ namespace lslidar_driver {
     
     void LslidarDriver::publishScan() {
         std::unique_lock<std::mutex> lock(pointcloud_lock);
+        if (!scan_msg_bak) {
+            return;
+        }
         scan_msg_bak->header.frame_id = frame_id;
         scan_msg_bak->header.stamp = rclcpp::Time(sweep_end_time * 1e9);
         scan_pub->publish(std::move(scan_msg_bak));
@@ -866,12 +888,12 @@ namespace lslidar_driver {
                 scan_msg_bak = std::move(scan_msg);
             }
 
-            std::thread pointcloud_pub_thread([this] { publishPointcloud(); });
-            pointcloud_pub_thread.detach();
+            // Publishing from detached worker threads races on the shared *_bak_
+            // members and can dereference a moved-from LaserScan unique_ptr.
+            publishPointcloud();
 
             if (publish_scan) {
-                std::thread laserscan_pub_thread(&LslidarDriver::publishScan, this);
-                laserscan_pub_thread.detach();
+                publishScan();
             };
 
             point_cloud_xyzirt_.reset(new pcl::PointCloud<VPoint>());
@@ -1691,7 +1713,7 @@ namespace lslidar_driver {
     }
 
     void LslidarDriver::pollThread(void) {
-        while (rclcpp::ok()) {
+        while (rclcpp::ok() && flag == 1) {
             poll();
         }
     }

@@ -1,5 +1,7 @@
 # LIO-SAM
 
+> AutoRacer note: this is mostly the upstream LIO-SAM README. Current AutoRacer launch, odom, and TF rules live in `../../../docs/启动与运行规范.md`; phase acceptance rules live in the root workspace docs. Treat this file as algorithm/package reference, not as the current system runbook.
+
 **A real-time lidar-inertial odometry package. We strongly recommend the users read this document thoroughly and test the package with the provided dataset first. A video of the demonstration of the method can be found on [YouTube](https://www.youtube.com/watch?v=A0H8CoORZJU).**
 
 <p align='center'>
@@ -129,15 +131,20 @@ README.md of the master branch contains some links to ROS1 rosbags. It is possib
 
 ## Run the package
 
-1. Run the launch file:
+Current AutoRacer repository entry:
+
+1. Start the required data producers first, or play a bag that already contains `/point_cloud_raw` and `/imu/data_raw`.
+2. Run the launch file:
 ```
-ros2 launch lio_sam run.launch.py
+ros2 launch lio_sam autoracer_run.launch.py
 ```
 
-2. Play existing bag files:
+3. Optional: play existing bag files if they provide the same topic interface:
 ```
 ros2 bag play your-bag.bag
 ```
+
+Legacy `run*.launch.py` wrappers that depended on Wheeltec bringup have been removed from this repository. GNSS/offline workflows need a future AutoRacer-specific launch.
 
 ## Save map
 ```

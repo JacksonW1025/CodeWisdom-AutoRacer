@@ -1,0 +1,13 @@
+std_msgs/Header header
+string case_name
+uint32 target_index
+float32 lookahead_m
+float32 lateral_error_m
+float32 heading_error_rad
+float32 target_speed_mps
+float32 actual_speed_mps
+float32 steering_command_rad
+bool steering_limited
+bool speed_limited
+bool stop_commanded
+float32 remaining_distance_m

@@ -4,23 +4,10 @@
 autoracer_robot:
   ros__parameters:
     # Serial communication settings
-    usart_port_name: "/dev/ttyACM0"  # TODO: Update to actual device
+    usart_port_name: "/dev/ttyACM0"
     serial_baud_rate: 115200
 
-    # Frame IDs
+    # Frame IDs consumed by autoracer_robot
     robot_frame_id: "base_footprint"
     odom_frame_id: "odom"
     gyro_frame_id: "gyro_link"
-
-    # Odometry calibration (scale factors)
-    odom_x_scale: 1.0
-    odom_y_scale: 1.0
-    odom_z_scale_positive: 1.0
-    odom_z_scale_negative: 1.0
-
-    # Ackermann-specific parameters (measured 2026-01-23)
-    wheelbase: 0.54           # Distance between front and rear axles (m)
-    track_width: 0.48         # Distance between left and right wheels (m)
-    wheel_radius: 0.11        # Wheel radius (m)
-    max_steering_angle: 0.393 # Maximum steering angle (rad, ≈22.5°)
-    # Calculated: min_turning_radius ≈ 1.45m

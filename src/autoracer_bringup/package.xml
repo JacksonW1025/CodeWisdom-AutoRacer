@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>autoracer_bringup</name>
+  <version>0.1.0</version>
+  <description>Stage-specific launch entry points for the AutoRacer Ackermann stack</description>
+  <maintainer email="autoracer@todo.todo">autoracer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>turn_on_autoracer_robot</exec_depend>
+  <exec_depend>autoracer_path_tracking</exec_depend>
+  <exec_depend>autoracer_slam_toolbox</exec_depend>
+  <exec_depend>autoracer_robot_urdf</exec_depend>
+  <exec_depend>autoracer_robot_nav2</exec_depend>
+  <exec_depend>hipnuc_imu</exec_depend>
+  <exec_depend>imu_filter_madgwick</exec_depend>
+  <exec_depend>lslidar_driver</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend>
+  <exec_depend>nav2_collision_monitor</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>pointcloud_to_laserscan</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

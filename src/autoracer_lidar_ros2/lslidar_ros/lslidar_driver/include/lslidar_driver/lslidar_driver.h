@@ -189,7 +189,7 @@ namespace lslidar_driver {
 
         LslidarDriver(const rclcpp::NodeOptions &options);
 
-        virtual ~LslidarDriver() {}
+        virtual ~LslidarDriver();
 
         bool checkPacketValidity(lslidar_msgs::msg::LslidarPacket::UniquePtr &packet);
 
